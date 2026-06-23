@@ -165,11 +165,18 @@ services:
     container_name: fs-mcp
     restart: unless-stopped
     # Not published to the host — OWUI reaches it in-network at http://fs-mcp:8000.
+    # Three allowed roots: the ~/ai workspace, the second-brain vault, AND the
+    # mobile-agent repo. Each lives at a SIBLING path under ~/ (not nested under
+    # ~/ai), so each needs its own mount + its own server-filesystem arg —
+    # otherwise writes fail "Access denied — path" (path resolves outside the
+    # allowed roots). mobile-agent added 2026-06-23.
     command: >
       --host 0.0.0.0 --port 8000 --api-key "${MCPO_API_KEY}"
-      -- npx -y @modelcontextprotocol/server-filesystem /ai
+      -- npx -y @modelcontextprotocol/server-filesystem /ai /secondbrain /mobile-agent
     volumes:
       - ${HOME}/ai:/ai:rw
+      - ${HOME}/secondbrain:/secondbrain:rw
+      - ${HOME}/mobile-agent:/mobile-agent:rw
     networks:
       - ai-net
 
