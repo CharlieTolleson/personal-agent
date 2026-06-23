@@ -94,7 +94,9 @@ class SecondBrainTool:
 
         Returns:
             A Markdown string with a header and one section per result (title,
-            relevance score, snippet, and Notion source URL when available). If no
+            relevance score, snippet, and the local Obsidian vault note path as the
+            source — the vault is the source of truth; the Notion mirror URL is only
+            used as a fallback when a note has no vault path). If no
             candidates clear the vector score threshold, returns a short
             "(No relevant notes found…)" placeholder string instead.
 
@@ -127,7 +129,10 @@ class SecondBrainTool:
             used += cost
             lines.append(f"### {c['title']} (relevance: {score:.3f})")
             lines.append(snippet)
-            if c.get("notion_url"):
-                lines.append(f"Source: {c['notion_url']}")
+            # Cite the local Obsidian vault note (source of truth); fall back to the
+            # Notion mirror URL only when a note has no vault path recorded.
+            source = c.get("file_path") or c.get("notion_url")
+            if source:
+                lines.append(f"Source: {source}")
             lines.append("")
         return "\n".join(lines)

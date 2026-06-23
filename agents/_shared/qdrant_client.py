@@ -100,25 +100,29 @@ def search_second_brain(
         List of dicts with keys:
             title (str)       — page/note title
             text (str)        — text preview of the matching chunk
-            notion_url (str)  — Notion URL if indexed from Notion, else ""
+            file_path (str)   — vault-relative path of the source Obsidian note
+                                (the source of truth), else ""
+            notion_url (str)  — Notion mirror URL if also synced to Notion, else ""
             score (float)     — cosine similarity, rounded to 3 decimal places
 
     Raises:
         openai.OpenAIError: If embedding the query fails.
     """
     vector = _embed(query)
-    hits = _qdrant.search(
+    # qdrant-client >=1.7 removed Client.search(); use query_points().points.
+    hits = _qdrant.query_points(
         collection_name=COLLECTION,
-        query_vector=vector,
+        query=vector,
         limit=limit,
         score_threshold=score_threshold,
         query_filter=filter,
         with_payload=True,
-    )
+    ).points
     return [
         {
             "title":      h.payload.get("title", ""),
             "text":       h.payload.get("text", ""),
+            "file_path":  h.payload.get("file_path", ""),
             "notion_url": h.payload.get("notion_url", ""),
             "score":      round(h.score, 3),
         }
@@ -144,5 +148,9 @@ def format_context(results: list[dict]) -> str:
     for r in results:
         lines.append(f"### {r['title']} (relevance: {r['score']})")
         lines.append(r["text"])
-        lines.append(f"Source: {r['notion_url']}\n")
+        # Cite the local Obsidian vault note (source of truth); fall back to the
+        # Notion mirror URL only if the note has no vault path recorded.
+        source = r.get("file_path") or r.get("notion_url") or ""
+        if source:
+            lines.append(f"Source: {source}\n")
     return "\n".join(lines)
