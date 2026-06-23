@@ -194,11 +194,14 @@ services:
       - "6334:6334"
     volumes:
       - qdrant-data:/qdrant/storage
-    # /collections is used instead of /readyz because /readyz doesn't exist in
-    # all Qdrant versions; curl is available in the qdrant Docker image.
+    # The qdrant image ships NO curl/wget (it once did — the old curl-based check
+    # silently failed forever: `curl: not found`, container stuck "unhealthy" while
+    # actually serving fine). It DOES ship bash, so probe the REST port with bash's
+    # /dev/tcp instead (no extra binaries). NB: CMD-SHELL uses /bin/sh = dash, which
+    # lacks /dev/tcp, so invoke bash explicitly. If a future image drops bash too,
+    # switch to a sidecar/HTTP probe.
     healthcheck:
-      # /readyz does not exist in all Qdrant versions — /collections is stable
-      test: ["CMD-SHELL", "curl -sf http://localhost:6333/collections || exit 1"]
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/6333"]
       interval: 15s
       timeout: 5s
       retries: 5

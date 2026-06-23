@@ -2409,11 +2409,21 @@ async def get_metrics() -> dict:
                 "thresholds": record.thresholds.model_dump(),
             }
         )
+    # Reranker health: fail-soft means a chronic reranker outage is otherwise invisible
+    # (results still return, just unranked). Surface the in-process counters so a rising
+    # degraded share is visible here. Best-effort import — never fail /metrics over it.
+    try:
+        from hyperion.tools.reranker import health_stats as _rerank_health
+        reranker_stats = _rerank_health()
+    except Exception:
+        reranker_stats = {}
+
     return {
         "tasks_total": sum(status_counts.values()),
         "by_status": status_counts,
         "caps": caps,
         "agents": agents,
+        "reranker": reranker_stats,
     }
 
 

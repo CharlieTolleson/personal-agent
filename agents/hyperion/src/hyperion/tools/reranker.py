@@ -44,6 +44,38 @@ logger = logging.getLogger(__name__)
 # server config will cause the rerank request to fail (caught and degraded below).
 _MODEL = "BAAI/bge-reranker-v2-m3"
 
+# Max characters of each document actually sent to the cross-encoder for SCORING.
+# The model runs on CPU here (no GPU passthrough on the Mac host), and its latency
+# scales with (query, doc) sequence length. A full web_search batch (~17 docs of
+# ~2000 chars) took ~17s — over the old 15s client timeout — so reranking silently
+# degraded to original order on every large batch. bge-reranker-v2-m3 truncates to
+# 512 tokens internally anyway, and the lead of a snippet carries the relevance
+# signal, so we cap the SCORING text at ~512 chars (≈8s for the same batch). This is
+# scoring-only: the returned indices still map to the caller's full-length documents.
+_RANK_CHAR_CAP = 512
+
+# Generous request timeout: even capped, a cold model or a CPU spike can push a large
+# batch past a tight deadline. 30s leaves headroom; rerank is fail-soft past it.
+_RERANK_TIMEOUT_S = 30.0
+
+# In-process health counters. rerank() is deliberately fail-soft (falls back to the
+# original order on any error), which means a chronic outage is otherwise INVISIBLE —
+# results still come back, just unranked. These counters make that degradation
+# observable via GET /metrics so "the reranker has been off for a week" can't hide.
+# Best-effort: reset on process restart (the API is a single uvicorn process).
+_STATS: dict[str, int] = {"calls": 0, "ok": 0, "degraded_timeout": 0, "degraded_error": 0}
+
+
+def health_stats() -> dict[str, int]:
+    """Snapshot of reranker call outcomes since process start (for GET /metrics).
+
+    Keys: ``calls`` (total), ``ok`` (reranked successfully), ``degraded_timeout``
+    (fell back because the service was too slow), ``degraded_error`` (fell back on
+    any other error, e.g. connection refused / bad response). A rising
+    ``degraded_*`` share means reranking is silently not happening.
+    """
+    return dict(_STATS)
+
 
 def rerank(query: str, documents: list[str], top_n: int = 5) -> list[tuple[int, float]]:
     """
@@ -73,16 +105,22 @@ def rerank(query: str, documents: list[str], top_n: int = 5) -> list[tuple[int, 
         service is down.
 
     Side effects:
-        Performs a synchronous HTTP POST to ``settings.infinity_url`` (15s
-        timeout) and may emit a warning log on failure.
+        Performs a synchronous HTTP POST to ``settings.infinity_url``
+        (``_RERANK_TIMEOUT_S``) and may emit a warning log on failure. Each
+        document is truncated to ``_RANK_CHAR_CAP`` chars for scoring only.
     """
     if not documents:
         return []
+    # Cap the SCORING text per doc to bound CPU cross-encoder latency (see
+    # _RANK_CHAR_CAP). Indices are preserved, so results still map to the caller's
+    # full-length `documents`.
+    ranking_docs = [d[:_RANK_CHAR_CAP] for d in documents]
+    _STATS["calls"] += 1
     try:
         resp = httpx.post(
             f"{settings.infinity_url}/rerank",
-            json={"model": _MODEL, "query": query, "documents": documents},
-            timeout=15.0,
+            json={"model": _MODEL, "query": query, "documents": ranking_docs},
+            timeout=_RERANK_TIMEOUT_S,
         )
         resp.raise_for_status()
         results = resp.json().get("results", [])
@@ -90,11 +128,26 @@ def rerank(query: str, documents: list[str], top_n: int = 5) -> list[tuple[int, 
         # input list) and "relevance_score"; re-sort defensively in case the
         # service does not already return them best-first, then take top_n.
         ranked = sorted(results, key=lambda r: r["relevance_score"], reverse=True)
+        _STATS["ok"] += 1
         return [(r["index"], r["relevance_score"]) for r in ranked[:top_n]]
     except Exception as exc:
         # Fail-soft: never propagate reranker outages to callers. Preserve the
         # original input order (first top_n items) so retrieval still proceeds.
-        logger.warning("Reranker unavailable (%s) — returning original order", exc)
+        # Classify timeout (service too slow — tune cap/timeout/model) vs any other
+        # error (down / bad response) so chronic slowness is distinguishable in the
+        # logs and in the /metrics counters.
+        if isinstance(exc, httpx.TimeoutException):
+            _STATS["degraded_timeout"] += 1
+            logger.warning(
+                "Reranker TIMEOUT after %ss (%d docs) — returning original order. "
+                "If frequent, the CPU cross-encoder is too slow for the batch; lower "
+                "_RANK_CHAR_CAP / doc count, raise _RERANK_TIMEOUT_S, or use a lighter "
+                "reranker/GPU.",
+                _RERANK_TIMEOUT_S, len(documents),
+            )
+        else:
+            _STATS["degraded_error"] += 1
+            logger.warning("Reranker unavailable (%s) — returning original order", exc)
         return [(i, 0.0) for i in range(min(top_n, len(documents)))]
 
 
