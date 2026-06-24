@@ -10,7 +10,7 @@
       "kind": "work",
       "upstream": [],
       "gate_before": false,
-      "instruction": "Objective: Estimate the market scope and size for the idea's domain.\n\nInstructions:\n\nDefine the Market: Identify the overall market relevant to the idea. Specify the segment(s) of the market the idea targets.\nQuantify the Market Size: Use industry reports, financial analyses, and statistical data to estimate the total revenue potential of the market.\nSegment the Market: Break down the market into smaller segments based on characteristics like geography, demographics, and customer needs.\nAssess Growth Potential: Identify trends that could impact growth, including socio-economic factors and technological advancements.\nOutput Format:\n\nSummary of total market size and key segments.\nSupporting data and references to sources.\nCharts or graphs illustrating market segments and growth trends.",
+      "instruction": "Objective: Estimate the market scope and size for the idea's domain.\n\nInstructions:\n\nDefine the Market: Identify the overall market relevant to the idea. Specify the segment(s) of the market the idea targets.\nQuantify the Market Size: Use industry reports, financial analyses, and statistical data to estimate the total revenue potential of the market.\nSegment the Market: Break down the market into smaller segments based on characteristics like geography, demographics, and customer needs.\nAssess Growth Potential: Identify trends that could impact growth, including socio-economic factors and technological advancements.\nIterate: Review your findings and determine if further research is needed in order for your findings to be comprehensive and without any gaps that could compromise the business plan that the research will inform.\n\nOutput Format:\n\nSummary of total market size and key segments.\nSupporting data and references to sources.\nCharts or graphs illustrating market segments and growth trends.",
       "when": null,
       "position": {
         "x": 461.0,
@@ -38,7 +38,7 @@
       "kind": "work",
       "upstream": [],
       "gate_before": false,
-      "instruction": "Objective: Understand the legal requirements and pitfalls in the domain of the idea.\n\nInstructions:\n\nIdentify Relevant Regulations: Research laws and regulations applicable to the industry.\nAnalyze Compliance Requirements: Summarize what companies must do to comply with laws.\nIdentify Legal Pitfalls: Highlight common legal challenges businesses face in this domain.\nBest Practices: Collect industry best practices for navigating legal requirements.\nOutput Format:\n\nComprehensive list of applicable laws and regulations.\nSummary of compliance obligations.\nList of potential legal pitfalls and best practices.",
+      "instruction": "Objective: Understand the legal requirements and pitfalls in the domain of the idea.\n\nInstructions:\n\nIdentify Relevant Regulations: Research laws and regulations applicable to the industry.\nAnalyze Compliance Requirements: Summarize what companies must do to comply with laws.\nIdentify Legal Pitfalls: Highlight common legal challenges businesses face in this domain.\nBest Practices: Collect industry best practices for navigating legal requirements.\nIterate: Review your findings and determine if further research is needed in order for your findings to be comprehensive and without any gaps that could compromise the business plan that the research will inform.\n\nOutput Format:\n\nComprehensive list of applicable laws and regulations.\nSummary of compliance obligations.\nList of potential legal pitfalls and best practices.",
       "when": null,
       "position": {
         "x": 935.0,
@@ -105,8 +105,8 @@
       "instruction": "Objective: Highlight potential drawbacks and risks of the idea based on research.\n\nPrompt:\n\nIdentify Weaknesses: Point out weaknesses and threats identified in the research.\nHighlight Pitfalls: Bring attention to any legal, market, or operational risks.\nCompare Competitors: Discuss areas where competitors may have an advantage.\nUse Evidence: Back up critiques with data and examples from the research.\nOutput Format:\n\nAnalytical argument focused on potential issues and risks.\nList of weaknesses, threats, and competitive disadvantages.\nEvidence-backed supporting points.",
       "when": null,
       "position": {
-        "x": 1071.0,
-        "y": 436.0
+        "x": 1294.0,
+        "y": 432.0
       }
     },
     {
@@ -121,25 +121,24 @@
       "instruction": "Objective: Emphasize positive aspects of the idea based on research.\n\nPrompt:\n\nIdentify Strengths: Highlight the strengths and opportunities found in the research.\nAlign with Trends: Illustrate how the idea aligns with current market trends and future forecasts.\nEmphasize Unique Value Proposition: Focus on what makes the idea stand out and potential benefits to stakeholders.\nCite Successes: Reference any positive data or case studies supporting the idea's success.\nOutput Format:\n\nPersuasive argument emphasizing the idea’s potential and benefits.\nList of strengths, opportunities, and alignment with market trends.\nEvidence-backed supporting points.",
       "when": null,
       "position": {
-        "x": 812.0,
-        "y": 438.0
+        "x": 1051.0,
+        "y": 431.0
       }
     },
     {
       "id": "planner",
       "agent": "planner",
       "workflow": null,
-      "kind": "synthesize",
+      "kind": "plan",
       "upstream": [
-        "critic",
-        "advocate"
+        "research-synthesizer"
       ],
       "gate_before": false,
       "instruction": "Objective: Develop an implementation and go-to-market plan, balancing advocate and critic perspectives.\n\nPrompt:\n\nSet Objectives: Define clear objectives and goals for the implementation.\nCreate Strategy: Develop strategies that leverage strengths and mitigate weaknesses highlighted by the advocate and critic.\nOutline Steps: Provide a step-by-step implementation roadmap, including timelines and key milestones.\nRisk Management: Address potential risks with mitigation strategies.\nOutput Format:\n\nDetailed implementation and go-to-market plan with objectives and timelines.\nStrategies for leveraging strengths and managing risks.\nRisk mitigation plans.",
       "when": null,
       "position": {
-        "x": 812.0,
-        "y": 676.0
+        "x": 809.0,
+        "y": 432.0
       }
     },
     {
@@ -155,8 +154,8 @@
       "instruction": "Objective: Provide an objective evaluation of whether to pursue the idea.\n\nPrompt:\n\nAnalyze Research Findings: Review synthesized research along with advocate and critic perspectives.\nEvaluate Feasibility: Assess the viability and potential return on investment for the idea.\nBalance Perspectives: Objectively weigh strengths against weaknesses and risks.\nMake Recommendation: Provide a clear recommendation on whether to proceed with the idea.\nOutput Format:\n\nObjective evaluation with consideration of all perspectives.\nFeasibility assessment and potential ROI analysis.\nFinal recommendation with rationale.",
       "when": null,
       "position": {
-        "x": 1071.0,
-        "y": 675.0
+        "x": 1172.0,
+        "y": 598.0
       }
     },
     {
@@ -166,14 +165,31 @@
       "kind": "synthesize",
       "upstream": [
         "planner",
-        "assessor"
+        "assessor",
+        "developer"
       ],
       "gate_before": false,
-      "instruction": "Objective: Deliver a final summary and outline the go-to-market plan if the idea is recommended.\n\nPrompt:\n\nSummarize Assessor’s Verdict: Clearly state the assessor’s conclusion and recommendation.\nOutline Planner’s Plan: Summarize the key points from the planner’s implementation and go-to-market plan.\nIntegrate Feedback: Ensure all recommendations and plans are in line with assessed results.\nOutput Format:\n\nConcise summary of the assessor's verdict and rationale.\nA comprehensive, yet focused brief that serves as a guide for of the go-to-market plan from the planner.\nFinal action items or next steps based on assessment.",
+      "instruction": "Objective: Deliver a final summary and outline the go-to-market plan if the idea is recommended.\n\nPrompt:\n\nDescribe the Idea: Give a clear and concise description of the idea, comprehensively explaining any and all aspects of the idea that have been previously defined.\nSummarize Assessor’s Verdict: Clearly state the assessor’s conclusion and recommendation.\nOutline Planner’s Plan: Summarize the key points from the planner’s implementation and go-to-market plan.\nIntegrate Feedback: Ensure all recommendations and plans are in line with assessed results.\nProvide the Developer's plan: Provide the verbatim plan from the Developer for the technical implementation of the idea.\n\nOutput Format:\n\nDescription of the idea and any well-defined aspects of the idea.\nConcise summary of the assessor's verdict and rationale.\nA comprehensive, yet focused brief that serves as a guide for of the go-to-market plan from the planner.\nComprehensive technical plan from the developer, ready to pass to an agent for implementation.\nFinal action items or next steps based on assessment.",
       "when": null,
       "position": {
         "x": 945.0,
         "y": 824.0
+      }
+    },
+    {
+      "id": "developer",
+      "agent": "developer",
+      "workflow": null,
+      "kind": "plan",
+      "upstream": [
+        "research-synthesizer"
+      ],
+      "gate_before": false,
+      "instruction": "Create a detailed technical plan for the implementation of this idea. Everything from the backend architecture to the frontend user experience should be outlined in detail such that another agent can pick up your plan and immediately begin implementation without any ambiguity.\n\nYour implementation plan should be rooted in the current state of the art tools and industry standards available. Use the internet to learn about the best options available and consider tradeoffs between options.\n\nIterate on your architecture plan at least 5 times to ensure that the plan is comprehensive and top-notch.",
+      "when": null,
+      "position": {
+        "x": 580.0,
+        "y": 432.0
       }
     }
   ]

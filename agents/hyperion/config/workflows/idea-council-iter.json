@@ -1,0 +1,85 @@
+{
+  "id": "idea-council-iter",
+  "name": "idea-council-iter",
+  "description": "Idea iteration and extrapolation. Takes an inception of an idea and improves and expands it.",
+  "nodes": [
+    {
+      "id": "council-iter-1",
+      "agent": null,
+      "workflow": "idea-council",
+      "kind": "subworkflow",
+      "upstream": [],
+      "gate_before": false,
+      "instruction": null,
+      "when": null,
+      "position": {
+        "x": 1004.0,
+        "y": 126.0
+      }
+    },
+    {
+      "id": "re-work-1",
+      "agent": "critic",
+      "workflow": null,
+      "kind": "work",
+      "upstream": [
+        "council-iter-1"
+      ],
+      "gate_before": false,
+      "instruction": "Given the Idea, Assessment, and plan provided by the idea council, improve the idea such that it fills more user needs, addresses risks, and fills any gaps or oversights that are present.\n\nYou have free reign to completely re-design the idea if you think that it is the best way forward.\n\nReturn your improved idea summary and comprehensive description. If the idea is already sound and comprehensive, you are welcome to return the original idea description as-is.",
+      "when": null,
+      "position": {
+        "x": 1004.0,
+        "y": 252.0
+      }
+    },
+    {
+      "id": "re-work-2",
+      "agent": "critic",
+      "workflow": null,
+      "kind": "work",
+      "upstream": [
+        "council-iter-2"
+      ],
+      "gate_before": false,
+      "instruction": "Given the Idea, Assessment, and plan provided by the idea council, improve the idea such that it fills more user needs, addresses risks, and fills any gaps or oversights that are present.\n\nYou have free reign to completely re-design the idea if you think that it is the best way forward.\n\nReturn your improved idea summary and comprehensive description. If the idea is already sound and comprehensive, you are welcome to return the original idea description as-is.",
+      "when": null,
+      "position": {
+        "x": 1004.0,
+        "y": 493.0
+      }
+    },
+    {
+      "id": "council-iter-2",
+      "agent": null,
+      "workflow": "idea-council",
+      "kind": "subworkflow",
+      "upstream": [
+        "re-work-1"
+      ],
+      "gate_before": false,
+      "instruction": null,
+      "when": null,
+      "position": {
+        "x": 1004.0,
+        "y": 371.0
+      }
+    },
+    {
+      "id": "council-iter-3",
+      "agent": null,
+      "workflow": "idea-council",
+      "kind": "subworkflow",
+      "upstream": [
+        "re-work-2"
+      ],
+      "gate_before": false,
+      "instruction": null,
+      "when": null,
+      "position": {
+        "x": 1004.0,
+        "y": 623.0
+      }
+    }
+  ]
+}
