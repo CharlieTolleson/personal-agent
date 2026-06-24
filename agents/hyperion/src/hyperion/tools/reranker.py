@@ -40,9 +40,12 @@ from hyperion.config import settings
 logger = logging.getLogger(__name__)
 
 # Cross-encoder model name expected by the Infinity reranker service. Must match a
-# model loaded/served by that service; changing it here without changing the
+# model loaded/served by that service (the `--served-model-name` in the infinity
+# service in ai-router/docker-compose.yml); changing it here without changing the
 # server config will cause the rerank request to fail (caught and degraded below).
-_MODEL = "BAAI/bge-reranker-v2-m3"
+# bge-reranker-base (278M) replaced bge-reranker-v2-m3 (568M) — the v2-m3 model was
+# ~2x slower on this CPU-only host and >50% of calls timed out into fail-soft.
+_MODEL = "BAAI/bge-reranker-base"
 
 # Max characters of each document actually sent to the cross-encoder for SCORING.
 # The model runs on CPU here (no GPU passthrough on the Mac host), and its latency

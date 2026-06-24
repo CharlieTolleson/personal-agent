@@ -127,7 +127,11 @@ class SecondBrainTool:
                 lines.append(f"(…{len(ranked)} results trimmed to fit context budget)")
                 break
             used += cost
-            lines.append(f"### {c['title']} (relevance: {score:.3f})")
+            # 4 decimals: real cross-encoder scores for weakly-relevant notes are
+            # often <0.001, which `:.3f` rounded to a misleading "0.000" (looked like
+            # the reranker had failed even when it hadn't). Keep enough precision to
+            # distinguish a genuine low score from a 0.0000 fail-soft fallback.
+            lines.append(f"### {c['title']} (relevance: {score:.4f})")
             lines.append(snippet)
             # Cite the local Obsidian vault note (source of truth); fall back to the
             # Notion mirror URL only when a note has no vault path recorded.

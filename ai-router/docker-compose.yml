@@ -294,7 +294,10 @@ services:
   # Model: BAAI/bge-reranker-v2-m3 (CPU mode; set INFINITY_DEVICE=cuda for GPU)
   # ---------------------------------------------------------------------------
   infinity:
-    image: michaelf34/infinity:latest
+    # PINNED (do not use :latest). The unpinned tag silently drifted versions and
+    # was a recurring source of breakage; 0.0.75 is the known-good build. Bump
+    # deliberately, then re-run the reranker latency/metrics checks before keeping.
+    image: michaelf34/infinity:0.0.75
     container_name: infinity
     restart: unless-stopped
     ports:
@@ -304,13 +307,26 @@ services:
     environment:
       # Set to "cuda" and add `deploy: resources: reservations: devices:` for GPU
       INFINITY_DEVICE: "${INFINITY_DEVICE:-cpu}"
+    # CPU-fast reranker. bge-reranker-v2-m3 (568M, multilingual) was ~16s/15-doc
+    # batch on this CPU-only box (no Docker GPU on Apple Silicon) → >50% of rerank
+    # calls timed out and silently fell back to UNRANKED order with 0.0 scores.
+    # bge-reranker-base (278M) is ~2x faster at comparable quality for English notes.
+    # NOTE: --served-model-name MUST match _MODEL in hyperion tools/reranker.py.
     command: >
       v2
-      --model-id BAAI/bge-reranker-v2-m3
-      --served-model-name BAAI/bge-reranker-v2-m3
+      --model-id BAAI/bge-reranker-base
+      --served-model-name BAAI/bge-reranker-base
       --port 7997
       --batch-size 32
       --device ${INFINITY_DEVICE:-cpu}
+    # Make degradation visible (was Health=none). /health is 200 once the model is
+    # loaded; the long start_period covers first-run model download + load.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:7997/health').status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 240s
     networks:
       - ai-net
 
