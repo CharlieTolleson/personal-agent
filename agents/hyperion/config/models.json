@@ -2,5 +2,5 @@
   "model_planner": "smart",
   "model_worker": "worker",
   "model_cheap": "cheap",
-  "default_workflow": "research-critique"
+  "default_workflow": "claude-workflow"
 }
