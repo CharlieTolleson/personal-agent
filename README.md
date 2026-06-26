@@ -11,7 +11,7 @@ This repo is a fully integrated personal AI operating system, built from scratch
 | Component | What it does |
 |---|---|
 | **ai-router** | Docker Compose stack that wires together every backing service on a shared bridge network (`ai-net`). One `docker compose up -d` starts everything. |
-| **Hyperion** | A multi-agent research orchestrator (CrewAI + FastAPI). Accepts a natural-language task, decomposes it into a plan, researches via web + second brain, and produces a Markdown report. |
+| **Hyperion** | A multi-agent research orchestrator (owned LiteLLM agent loop + FastAPI). Accepts a natural-language task, decomposes it into a plan, researches via web + second brain, and produces a Markdown report. |
 | **Hyperion UI** | React/Vite web console for managing agents, building workflows visually, monitoring live runs, and reconfiguring models without restarting the service. |
 | **Second brain** | An Obsidian vault ingested into Qdrant, searchable by all agents and tools via semantic similarity + reranking. |
 | **Skills** | Claude Code slash commands (`/hyperion`, `/research`) and Open WebUI tool plugins that surface Hyperion to any chat interface. |
@@ -34,7 +34,7 @@ This repo is a fully integrated personal AI operating system, built from scratch
 │  Qdrant :6333    (vector DB — second brain + memory)     │
 │  Langfuse :3001  (LLM tracing + observability)           │
 │  SearXNG :8888   (self-hosted federated web search)      │
-│  Infinity :7997  (BAAI/bge-reranker-v2-m3)               │
+│  Infinity :7997  (BAAI/bge-reranker-base)               │
 │  Postgres        (LiteLLM virtual keys + Langfuse store) │
 └──────────────────────────────────────────────────────────┘
 ```
@@ -45,7 +45,7 @@ This repo is a fully integrated personal AI operating system, built from scratch
 
 ## Hyperion — the orchestrator
 
-Hyperion is the main project in this repo. It's a production-quality multi-agent system built on top of CrewAI, with a number of architectural layers:
+Hyperion is the main project in this repo. It's a production-quality multi-agent system built on an owned LiteLLM tool-calling agent loop, with a number of architectural layers:
 
 ### Workflow engine
 Tasks run as DAGs defined in JSON. The runner topo-sorts nodes (Kahn's algorithm), validates for cycles (including cross-workflow subworkflow cycles), and executes independent branches in parallel. Workflows are CRUD-managed via the API and editable visually in the React UI's workflow builder (React Flow).
@@ -96,7 +96,7 @@ tests/
 ├── test_subworkflow.py     # cross-workflow DAG + cycle detection
 ├── test_hitl.py            # human-in-the-loop pause/resume
 ├── test_context.py         # episodic memory injection
-├── test_crewai_contract.py # CrewAI version-pin smoke test
+├── test_agent_loop.py      # owned LiteLLM tool-calling loop
 └── ...
 ```
 
@@ -151,12 +151,12 @@ python ingest_obsidian.py --incremental
 
 | Layer | Technology |
 |---|---|
-| Agent framework | CrewAI 0.86.0 (version-pinned) |
+| Agent loop | Owned LiteLLM tool-calling loop (`agent_loop.py`) |
 | LLM proxy | LiteLLM (digest-pinned Docker image) |
 | API | FastAPI + aiosqlite |
 | Vector DB | Qdrant (REST + gRPC) |
 | Embeddings | OpenAI text-embedding-3-small |
-| Reranker | BAAI/bge-reranker-v2-m3 via Infinity |
+| Reranker | BAAI/bge-reranker-base via Infinity |
 | Web search | SearXNG (self-hosted, federated) |
 | Observability | Langfuse |
 | Frontend | React + Vite + TypeScript + Tailwind + React Flow |

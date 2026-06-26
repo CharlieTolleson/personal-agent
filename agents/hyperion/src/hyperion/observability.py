@@ -7,8 +7,8 @@ as a generation in Langfuse, no SDK glue required on the client side.
 
 This module exposes a helper that builds the LiteLLM `metadata` dict so all
 LLM calls for a given task share a session_id (= task_id) and tags. The dict
-should be passed to the CrewAI LLM via `additional_kwargs` or to OpenAI calls
-via `extra_body={"metadata": ...}`.
+should be passed to the LLM call via `extra_body={"metadata": ...}` (the owned
+agent loop threads it into every `litellm.completion`).
 """
 
 from __future__ import annotations
@@ -22,8 +22,7 @@ def trace_metadata(task_id: str, agent_role: str | None = None) -> dict:
     The returned dict is meant to be threaded into the underlying LLM call so
     that Langfuse (configured proxy-side via ``success_callback: ["langfuse"]``)
     can correlate all generations belonging to the same Hyperion task. Pass it
-    to a CrewAI LLM via ``additional_kwargs`` or to a raw OpenAI-style call via
-    ``extra_body={"metadata": ...}``.
+    to the LLM call via ``extra_body={"metadata": ...}``.
 
     Args:
         task_id: Unique identifier for the Hyperion task/run. Used as the

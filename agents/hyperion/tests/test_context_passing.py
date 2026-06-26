@@ -2,8 +2,8 @@
 
 The runner threads each node's output text into its downstream nodes' task
 descriptions (and seeds root nodes with the raw idea/request), instead of relying
-solely on agents reading/writing workspace files. CrewAI is untouched; this is a
-pure runner concern. See ``plan-phase1-context-passing.md``.
+solely on agents reading/writing workspace files. This is a pure runner concern.
+See ``plan-phase1-context-passing.md``.
 
 What is under test:
   - ``_upstream_context``: root nodes get the raw request; downstream nodes get
@@ -167,7 +167,7 @@ def test_root_work_node_gets_idea_header():
 
 @contextlib.contextmanager
 def _mock_crew(tasks_dir, captured: dict):
-    """Patch the runner so a workflow runs with no LLM/CrewAI execution.
+    """Patch the runner so a workflow runs with no LLM/agent execution.
 
     The fake ``_run_stage`` records each node's task description into ``captured``
     and returns a synthetic CrewOutput whose ``.raw`` is ``OUTPUT::<node>`` so the

@@ -11,7 +11,7 @@ to regenerate seeds; it does not touch agents you created via the API/UI.
 
 Role in the system
 ------------------
-Hyperion's orchestrator (FastAPI :4100, CrewAI-based) builds crews from a
+Hyperion's orchestrator (FastAPI :4100) builds agent runs from a
 *data-driven* agent registry — each agent is a JSON record under
 ``config/agents/<id>.json`` rather than a hardcoded Python factory. This script
 is the one-time bootstrap that writes those JSON files for the five built-in

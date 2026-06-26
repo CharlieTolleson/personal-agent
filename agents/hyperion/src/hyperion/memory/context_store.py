@@ -7,7 +7,7 @@ e.g. the auto-discovered ``context_brief``, recalled prior-task ids, or a fact t
 researcher wants the synthesizer to see without re-deriving.
 
 ``context_put`` / ``context_get`` are exposed both as plain functions (used by the
-runner) and as CrewAI tools (granted to agent records via the registry).
+runner) and as tools (granted to agent records via the registry).
 """
 
 from __future__ import annotations

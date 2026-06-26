@@ -123,8 +123,8 @@ async def list_tools() -> list[Tool]:
         Tool(
             name="hyperion_run",
             description=(
-                "Submit a task to Hyperion (CrewAI multi-agent system). "
-                "The crew plans, researches, and synthesizes a result. "
+                "Submit a task to Hyperion (a multi-agent system). "
+                "It plans, researches, and synthesizes a result. "
                 "Returns a task_id immediately; use hyperion_status to poll."
             ),
             inputSchema={

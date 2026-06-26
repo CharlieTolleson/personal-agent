@@ -4,7 +4,7 @@ Role in the system
 ------------------
 Hyperion agents (planner/researcher/developer/critic/synthesizer) often need a
 place to stash intermediate artifacts — draft files, notes, generated code —
-while a task runs. This module exposes three CrewAI ``BaseTool`` subclasses that
+while a task runs. This module exposes three tool classes that
 give agents read/write/list access to a *sandboxed* directory unique to the
 current task: ``settings.tasks_dir / <task_id>``.
 
@@ -227,9 +227,9 @@ def workspace_tools(task_id: str) -> list:
             within. All three tools are pinned to this id.
 
     Returns:
-        A list of CrewAI tool instances — ``WorkspaceReadTool``,
+        A list of tool instances — ``WorkspaceReadTool``,
         ``WorkspaceWriteTool``, and ``WorkspaceListTool`` — ready to attach to an
-        agent or crew for the given task.
+        agent for the given task.
     """
     return [
         WorkspaceReadTool(task_id=task_id),

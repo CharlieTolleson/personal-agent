@@ -1,7 +1,7 @@
 """Hyperion ``crews`` package: crew assembly and workflow execution.
 
 This package is the orchestration core that turns a Hyperion task request into a
-sequence of CrewAI agent steps and runs them to completion. It sits between the
+sequence of agent steps and runs them to completion. It sits between the
 HTTP/MCP server layer (``hyperion.server``) and the individual agent definitions,
 and is responsible for *how* agents are wired together and *in what order* they run.
 

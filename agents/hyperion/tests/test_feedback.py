@@ -35,7 +35,7 @@ def anyio_backend():
 def _mock_crew(stage_impl):
     """Patch the crew runner so ``run_task``/``resume_task`` execute without an LLM.
 
-    Replaces the agent-building, context-discovery, and CrewAI task-factory helpers
+    Replaces the agent-building, context-discovery, and node-task-factory helpers
     with no-op mocks, and swaps ``runner._run_stage`` for the caller-supplied
     ``stage_impl``. This lets the pause/resume control flow be exercised end to end
     while the per-stage work is fully simulated.

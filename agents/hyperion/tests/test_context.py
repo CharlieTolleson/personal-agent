@@ -10,7 +10,7 @@ Scope / what is covered
 1. ``hyperion.memory.context_store`` — a per-task key/value blackboard that lets
    multiple agent stages in a workflow share facts. Tests cover put/get
    round-trips, whole-blackboard reads, missing-key/missing-task behavior, and
-   the CrewAI tool wrappers (``ContextPutTool`` / ``ContextGetTool``) that expose
+   the tool wrappers (``ContextPutTool`` / ``ContextGetTool``) that expose
    the store to agents.
 2. ``hyperion.tools.reranker.prioritize`` — selects the highest-value candidate
    snippets that fit within a token budget. Tests cover normal trimming, the

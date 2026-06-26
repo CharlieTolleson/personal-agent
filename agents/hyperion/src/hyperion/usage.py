@@ -486,11 +486,8 @@ _LOGGER: HyperionUsageLogger | None = None
 def get_logger() -> HyperionUsageLogger:
     """Return the process-wide usage logger singleton.
 
-    Pass this into CrewAI's ``LLM(callbacks=[...])`` so token accounting and cap
-    enforcement survive — CrewAI's ``LLM.set_callbacks`` does ``litellm.callbacks =
-    callbacks`` (a full overwrite) on every LLM construction, which silently wipes
-    anything we installed via ``register()``. Handing it our logger means CrewAI
-    sets ``litellm.callbacks = [our_logger]`` instead of ``[]``."""
+    Installed on LiteLLM's global callback list by :func:`register`; exposed as an
+    accessor for callers that need the instance directly."""
     global _LOGGER
     if _LOGGER is None:
         _LOGGER = HyperionUsageLogger()
@@ -500,9 +497,9 @@ def get_logger() -> HyperionUsageLogger:
 def register() -> None:
     """Install the usage logger on LiteLLM's callback list exactly once.
 
-    Covers direct ``litellm.completion`` calls (e.g. from tools). CrewAI agent
-    calls are covered separately via ``get_logger()`` passed to each ``LLM`` —
-    see that function for why the global install alone is insufficient."""
+    Covers every ``litellm.completion`` call in the process — the owned agent loop
+    and direct tool calls alike — so token accounting and cap enforcement always
+    apply. Called once at startup (see ``server/api.py``)."""
     global _REGISTERED
     if _REGISTERED:
         return

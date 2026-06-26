@@ -17,7 +17,7 @@ What is under test:
 
 Design / test-isolation notes:
   - The crew stages are mocked (``_run_stage`` / ``build_agent`` / the task
-    builders) so these tests run with NO LLM calls and no CrewAI execution; the
+    builders) so these tests run with NO LLM calls and no agent execution; the
     fake ``_run_stage`` writes realistic ``notes/`` + ``artifacts/result.md`` so
     the empty-stage checks and the sub-workflow hand-off behave normally.
   - ``settings.tasks_dir`` is patched to ``tmp_path`` so runs read/write under a
@@ -191,7 +191,7 @@ def _child_workflow() -> WorkflowRecord:
 
 @contextlib.contextmanager
 def _mock_subworkflow_crew(tasks_dir):
-    """Patch the CrewAI helpers, workflow resolver, and meta pipeline for LLM-free runs.
+    """Patch the agent-run helpers, workflow resolver, and meta pipeline for LLM-free runs.
 
     The fake ``_run_stage`` writes ``notes/<stage>.md`` and ``artifacts/result.md``
     under each run's workspace so the empty-stage checks and the sub-workflow

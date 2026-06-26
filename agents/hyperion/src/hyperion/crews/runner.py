@@ -124,8 +124,8 @@ class ToolCallTracker:
 def gate(task_id: str, stage: str, hitl: str) -> bool:
     """Decide whether to pause after ``stage`` for human approval.
 
-    Pauses after the plan stage when hitl in (plan, full). CrewAI cannot interrupt
-    mid-kickoff, so the gate sits *between* stages: the plan stage finishes, the
+    Pauses after the plan stage when hitl in (plan, full). An agent run cannot be
+    interrupted mid-execution, so the gate sits *between* stages: the plan stage finishes, the
     coroutine returns awaiting_approval, and a later /approve resumes the next stage
     from the on-disk plan.md.
     """
@@ -301,7 +301,7 @@ def _plan_task(
 
     Args:
         request: The user's original request, embedded verbatim in the description.
-        agent: The CrewAI Agent that will run this task.
+        agent: The agent that will run this task.
         context_brief: Optional auto-discovered brief, appended as reference data
             (explicitly framed as data, not instructions, to resist prompt injection).
         header: Optional pre-escaped upstream-context block prepended ahead of the
@@ -310,7 +310,7 @@ def _plan_task(
             see ``_node_task`` for the double-injection guard).
 
     Returns:
-        A CrewAI Task whose expected output is plan.md in the workspace.
+        A NodeTask whose expected output is plan.md in the workspace.
     """
     brief_block = ""
     if context_brief:
@@ -347,14 +347,14 @@ def _work_task(
 
     Args:
         record: The agent record (its id names the Task).
-        agent: The CrewAI Agent that will run this task.
+        agent: The agent that will run this task.
         feedback: Optional human-feedback block appended to the description.
         header: Optional pre-escaped upstream-context block prepended ahead of the
             instruction (edge-threaded context from upstream nodes, or the raw idea
             for a root node).
 
     Returns:
-        A CrewAI Task whose expected output is one notes/*.md file per subtask.
+        A NodeTask whose expected output is one notes/*.md file per subtask.
     """
     return NodeTask(
         name=record.id,
@@ -375,13 +375,13 @@ def _synthesize_task(
 
     Args:
         record: The agent record (its id names the Task).
-        agent: The CrewAI Agent that will run this task.
+        agent: The agent that will run this task.
         feedback: Optional human-feedback block appended to the description.
         header: Optional pre-escaped upstream-context block prepended ahead of the
             instruction (edge-threaded context from upstream nodes).
 
     Returns:
-        A CrewAI Task whose expected output is the final result.md report.
+        A NodeTask whose expected output is the final result.md report.
     """
     return NodeTask(
         name=record.id,
@@ -649,7 +649,7 @@ def _node_fires(node, signals) -> tuple[bool, str]:
 def _output_text(result) -> str:
     """Normalize any node result to plain text for edge-threaded context.
 
-    Handles the three shapes a node can return: a CrewAI ``CrewOutput`` (read
+    Handles the three shapes a node can return: an ``AgentResult`` (read
     ``.raw``), a sub-workflow child run dict (read its ``result_path`` file), and a
     bare string. Failures degrade to an empty string so a missing/unreadable
     output simply contributes no downstream context rather than breaking the run.
@@ -701,7 +701,7 @@ def _upstream_context(node, node_outputs: dict[str, str], request: str) -> str:
 def _node_task(node, record: AgentRecord, agent, request: str,
                context_brief: str | None, feedback: str | None,
                upstream_ctx: str = ""):
-    """Build the CrewAI Task for a node, prepending edge-threaded upstream context.
+    """Build the NodeTask for a node, prepending edge-threaded upstream context.
 
     ``upstream_ctx`` is the raw idea (for a root node) or the concatenated upstream
     outputs (for a downstream node); it is escaped and prepended ahead of the
@@ -1042,7 +1042,7 @@ async def _execute_workflow(
             if feedback and progress_callback:
                 progress_callback(f"[feedback] injecting human feedback into wave {wi}")
 
-            # Execute one node — an agent node (single CrewAI crew) or a
+            # Execute one node — an agent node (single agent run) or a
             # subworkflow node (a nested workflow run). Used by both the single-
             # node and the parallel (asyncio.gather) paths below. `fb` and
             # `context_brief` are passed/closed-over explicitly so the coroutine

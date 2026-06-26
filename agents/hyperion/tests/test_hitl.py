@@ -19,7 +19,7 @@ What is under test (all in ``hyperion.crews.runner``):
 Design / test-isolation notes:
   - The crew stages are mocked (``_run_stage`` / ``build_agent`` and the task
     builders) via :func:`_mock_crew` so these tests exercise the pause/resume
-    control flow with NO LLM calls and no CrewAI execution.
+    control flow with NO LLM calls and no agent execution.
   - ``plan.md`` is written to the workspace directly by :func:`_write_plan` to
     stand in for the (mocked) planner's output, so plan parsing /
     option-selection behave realistically.
@@ -73,7 +73,7 @@ def anyio_backend():
 
 @contextlib.contextmanager
 def _mock_crew(stage_impl):
-    """Patch out every CrewAI-touching helper so control flow runs LLM-free.
+    """Patch out every agent-execution helper so control flow runs LLM-free.
 
     Replaces the agent builder, context discovery, and the three task builders
     with no-op mocks, and swaps the real ``_run_stage`` coroutine for a caller-

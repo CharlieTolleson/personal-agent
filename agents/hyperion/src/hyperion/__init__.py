@@ -1,7 +1,7 @@
 """Hyperion — self-hosted multi-agent AI system (top-level package marker).
 
-This is the package root for ``hyperion``, the CrewAI-based multi-agent
-orchestrator that lives under ``agents/hyperion/`` in Charlie's ~/ai workspace.
+This is the package root for ``hyperion``, the multi-agent orchestrator (owned
+LiteLLM agent loop) that lives under ``agents/hyperion/`` in Charlie's ~/ai workspace.
 Importing ``hyperion`` (or any submodule) executes this file; it currently does
 no setup beyond declaring the package and its purpose.
 
@@ -11,7 +11,7 @@ Hyperion coordinates a set of specialized agents (planner, researcher,
 developer, critic, synthesizer) over configurable workflow DAGs to complete
 multi-step tasks. The package is organized into submodules such as:
 
-- ``crews/`` — CrewAI agent/crew definitions and the workflow ``runner``.
+- ``crews/`` — agent/workflow definitions and the workflow ``runner``.
 - ``server/`` — FastAPI surface (``api``, MCP, webhooks, affordances) on :4100.
 - ``llms`` — model wiring; all LLM calls route through the LiteLLM proxy
   (``http://localhost:4000/v1``) per the workspace-wide convention, never

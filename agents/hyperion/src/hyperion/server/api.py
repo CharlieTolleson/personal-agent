@@ -1961,7 +1961,7 @@ async def tool_web_search(
 
     Delegates to the same WebSearchTool that Hyperion agents use internally, so
     the prompt-injection defenses, reranking, and snippet sanitization are
-    identical whether the caller is an OWUI model or an in-process CrewAI agent.
+    identical whether the caller is an OWUI model or an in-process Hyperion agent.
 
     Args:
         q: Search query string.

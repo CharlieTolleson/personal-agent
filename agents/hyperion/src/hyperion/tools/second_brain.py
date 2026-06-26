@@ -3,7 +3,7 @@
 Role in the system
 ------------------
 Exposes Charlie's personal Obsidian/Notion "second brain" (the PARA vault ingested
-into Qdrant) as a CrewAI ``BaseTool`` so Hyperion agents (planner, researcher, etc.)
+into Qdrant) as a tool so Hyperion agents (planner, researcher, etc.)
 can pull in background knowledge, past notes, career goals, projects, and investments
 while reasoning. It is one of the retrieval tools registered with the agents alongside
 ``web_search``, ``notion``, etc.
@@ -68,7 +68,7 @@ class SecondBrainTool:
 
     name = "search_second_brain"
     description = (
-        "Semantic search over the personal Notion second brain. "
+        "Semantic search over the personal second brain (local Obsidian vault). "
         "Use for background knowledge, past notes, career goals, projects, and investments. "
         "Input: a natural-language query string."
     )
@@ -86,7 +86,7 @@ class SecondBrainTool:
     def _run(self, query: str) -> str:
         """Search the second brain and return formatted, budget-trimmed results.
 
-        Invoked by CrewAI when an agent calls this tool. Over-fetches vector
+        Invoked when an agent calls this tool. Over-fetches vector
         candidates, reranks them, then renders the top results as Markdown.
 
         Args:

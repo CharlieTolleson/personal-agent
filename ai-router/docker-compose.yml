@@ -22,7 +22,7 @@
 #   Langfuse       (3001)  LLM tracing UI (container listens on 3000)
 #   SearXNG        (8888)  Federated meta-search JSON API (container :8080)
 #   Infinity       (7997)  Reranker / embedding server
-#   Hyperion       (4100)  CrewAI multi-agent orchestrator API
+#   Hyperion       (4100)  Multi-agent orchestrator API (owned LiteLLM agent loop)
 #   Hyperion MCP   (4101)  Hyperion exposed as an MCP server
 #   Hyperion UI    (4102)  React/Vite web console
 #
@@ -57,8 +57,9 @@ services:
   # LiteLLM — OpenAI-compatible proxy routing to GPT-4o, Gemini, Claude
   # ---------------------------------------------------------------------------
   litellm:
-    # Pinned at v1.82.6 — CrewAI callback hooks (P3 set_callbacks overwrite,
-    # P4 pre_call swallow) are version-sensitive; see CLAUDE.md.
+    # Pinned at v1.82.6 (digest below) for reproducibility — LiteLLM's pre_call
+    # hook swallows raises, so our owned agent loop (LlmHandle.complete) checks caps
+    # before calling litellm; this behavior is version-sensitive. See CLAUDE.md.
     # To upgrade: docker pull ghcr.io/berriai/litellm:main-latest, run
     # `docker inspect <id> --format '{{.Id}}'` for the new digest, then update
     # this line and smoke-test a Hyperion run before committing.
@@ -291,7 +292,7 @@ services:
   # ---------------------------------------------------------------------------
   # Infinity — self-hosted reranker + embedding server
   # Rerank endpoint: POST http://localhost:7997/rerank
-  # Model: BAAI/bge-reranker-v2-m3 (CPU mode; set INFINITY_DEVICE=cuda for GPU)
+  # Model: BAAI/bge-reranker-base (CPU mode; set INFINITY_DEVICE=cuda for GPU)
   # ---------------------------------------------------------------------------
   infinity:
     # PINNED (do not use :latest). The unpinned tag silently drifted versions and
@@ -331,7 +332,7 @@ services:
       - ai-net
 
   # ---------------------------------------------------------------------------
-  # Hyperion — CrewAI multi-agent orchestrator
+  # Hyperion — multi-agent orchestrator (owned LiteLLM agent loop; CrewAI removed)
   # API: http://localhost:4100   MCP: http://localhost:4101
   # Requires: ../agents/hyperion/.env (copy from .env.example and fill in)
   # ---------------------------------------------------------------------------

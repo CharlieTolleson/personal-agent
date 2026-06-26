@@ -2,7 +2,7 @@
 
 Self-hosted multi-agent AI system. Decomposes natural-language tasks, researches via web + second brain, optionally executes code, and synthesizes polished Markdown reports.
 
-**Stack:** CrewAI · LiteLLM proxy · Qdrant · SearXNG · Infinity reranker · Langfuse
+**Stack:** LiteLLM proxy · Qdrant · SearXNG · Infinity reranker · Langfuse
 
 ## Services
 
@@ -11,7 +11,7 @@ Self-hosted multi-agent AI system. Decomposes natural-language tasks, researches
 | Hyperion API | 4100 | FastAPI: submit tasks, poll status, stream progress |
 | Hyperion MCP | 4101 | MCP server for Claude Code integration |
 | SearXNG | 8888 | Self-hosted web search |
-| Infinity | 7997 | Reranker (BAAI/bge-reranker-v2-m3) |
+| Infinity | 7997 | Reranker (BAAI/bge-reranker-base) |
 | Langfuse | 3001 | Tracing UI |
 
 All services are on `ai-net` alongside the existing LiteLLM proxy (4000) and Qdrant (6333).

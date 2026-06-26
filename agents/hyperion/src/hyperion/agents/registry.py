@@ -122,8 +122,8 @@ class Thresholds(BaseModel):
 class AgentRecord(BaseModel):
     """Declarative definition of one agent, persisted as ``config/agents/<id>.json``.
 
-    This is the central data-driven contract of the system: the runner builds a
-    CrewAI agent purely from these fields (role/goal/backstory + model/tool config),
+    This is the central data-driven contract of the system: the runner builds an
+    agent purely from these fields (role/goal/backstory + model/tool config),
     so new agents are added by writing a record, never by editing code.
 
     An agent is a pure *persona*: it carries no ordering or activation metadata.

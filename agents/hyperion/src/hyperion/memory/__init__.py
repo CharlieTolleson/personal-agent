@@ -8,8 +8,8 @@ multi-agent run reuse knowledge instead of re-deriving it on every stage:
   researcher, developer, critic, synthesizer) can read and write. This is the
   cross-stage channel for facts that are neither notes nor artifacts (e.g. the
   auto-discovered ``context_brief`` or recalled prior-task ids). Helpers are
-  exposed both as plain functions for the crew runner and as CrewAI ``BaseTool``
-  wrappers (``ContextPutTool`` / ``ContextGetTool`` / ``RecallSimilarTasksTool``)
+  exposed both as plain functions for the runner and as tool wrappers
+  (``ContextPutTool`` / ``ContextGetTool`` / ``RecallSimilarTasksTool``)
   granted to agents via the tool registry.
 
 * ``episodic`` — *cross-task* long-term memory backed by the

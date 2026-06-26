@@ -1,7 +1,7 @@
 [project]
 name = "hyperion"
 version = "0.1.0"
-description = "Self-hosted multi-agent AI system (CrewAI + LiteLLM + Qdrant)"
+description = "Self-hosted multi-agent AI system (owned LiteLLM agent loop + Qdrant)"
 readme = "README.md"
 authors = [
     { name = "Charlie Tolleson", email = "charlietolleson@gmail.com" }

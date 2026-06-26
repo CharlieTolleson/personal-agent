@@ -7,7 +7,7 @@
  *   the Hyperion orchestrator (FastAPI :4100) persists and uses to assemble its
  *   multi-agent pipeline. An agent is a pure *persona*: every field on this form
  *   maps 1:1 onto an `AgentRecord` (see ../api/client) which the backend stores
- *   and reads when building CrewAI crews: identity/grouping, the prompt triple
+ *   and reads when building agent runs: identity/grouping, the prompt triple
  *   (role/goal/backstory), model routing (alias + optional fallback), tool
  *   grants, an optional `schedule_cron`, and per-run safety thresholds (token
  *   caps, activations/day circuit breaker). Ordering and activation are *not*

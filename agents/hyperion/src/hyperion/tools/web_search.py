@@ -1,6 +1,6 @@
 """Web search tool — SearXNG JSON API client.
 
-CrewAI tool that lets Hyperion agents (planner/researcher/etc.) fetch
+Tool that lets Hyperion agents (planner/researcher/etc.) fetch
 current information from the open web. It queries the self-hosted SearXNG
 meta-search engine (part of the ~/ai/ai-router Docker stack) via its JSON
 API, then re-ranks the returned snippets with the Infinity reranker so the
@@ -8,7 +8,7 @@ most relevant hits float to the top before they are handed to the LLM.
 
 Role in the system
 ------------------
-This is one of the agent-facing tools registered with CrewAI (alongside
+This is one of the agent-facing tools registered with the agents (alongside
 second_brain, notion, workspace, etc.). Agents invoke it by name
 ("web_search") with a single query string and receive a formatted Markdown
 block of results.
