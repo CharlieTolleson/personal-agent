@@ -1,0 +1,35 @@
+{
+  "id": "claude-workflow",
+  "name": "Claude-Style Workflow",
+  "description": "A sequential workflow that mimics the Claude app's likely agentic process: Plan, Research, and Synthesize. Enforces HHH principles for high-quality, grounded answers.",
+  "nodes": [
+    {
+      "id": "planner",
+      "agent": "planner",
+      "kind": "plan",
+      "upstream": [],
+      "gate_before": false,
+      "instruction": "Analyze the user's request and create a step-by-step research plan. Identify the key questions, topics, and entities that need to be investigated to provide a comprehensive answer. Your final output is a clear, actionable plan for the Researcher."
+    },
+    {
+      "id": "researcher",
+      "agent": "researcher",
+      "kind": "work",
+      "upstream": [
+        "planner"
+      ],
+      "gate_before": false,
+      "instruction": "Execute the research plan provided by the Planner. Use your search tools to find verified, up-to-date information for each point in the plan. Compile all retrieved information and source URLs into a single, cohesive document. Do not add any of your own knowledge; only use the information you find."
+    },
+    {
+      "id": "synthesizer",
+      "agent": "synthesizer",
+      "kind": "synthesize",
+      "upstream": [
+        "researcher"
+      ],
+      "gate_before": false,
+      "instruction": "Synthesize the provided research findings into a final, comprehensive answer for the user. Adhere strictly to the HHH (Helpful, Harmless, Honest) principles. Structure the answer clearly using Markdown. Most importantly, base your answer *only* on the provided research context to avoid hallucination. If the research is insufficient, state that you could not find the information. Acknowledge your sources."
+    }
+  ]
+}
