@@ -301,7 +301,6 @@ def validate_registry(data: dict, known_models: list[str]) -> None:
             raise ValueError(f"Built-in alias {builtin!r} cannot be removed")
 
     seen_roles: set[str] = set()
-    valid_role_targets = set(alias_keys) | set(known_models)
     for r in roles_in:
         if not isinstance(r, dict):
             raise ValueError("Each role must be an object")

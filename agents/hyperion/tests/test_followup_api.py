@@ -6,7 +6,7 @@ runner and the (LLM-backed) follow-up chat are mocked so no model is called.
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
