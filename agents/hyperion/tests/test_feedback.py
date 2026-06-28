@@ -15,6 +15,27 @@ import pytest
 from hyperion import alerts, feedback
 from hyperion.config import settings
 from hyperion.crews import runner
+from hyperion.crews.workflows import WorkflowNode, WorkflowRecord
+
+
+def _default_workflow() -> WorkflowRecord:
+    """The canonical 3-node research pipeline these tests are written against.
+
+    Pinning the workflow here (rather than letting ``run_task``/``resume_task``
+    resolve ``settings.default_workflow``) keeps the pause/resume tests
+    deterministic and independent of whichever workflow happens to be configured
+    as the ambient default. Mirrors the same helper in ``test_hitl.py``.
+    """
+    return WorkflowRecord(
+        id="research-default",
+        name="Research → Synthesize",
+        nodes=[
+            WorkflowNode(id="plan", agent="planner", kind="plan", upstream=[]),
+            WorkflowNode(id="research", agent="researcher", kind="work", upstream=["plan"]),
+            WorkflowNode(id="synthesize", agent="synthesizer", kind="synthesize",
+                         upstream=["research"]),
+        ],
+    )
 
 
 @pytest.fixture
@@ -55,6 +76,9 @@ def _mock_crew(stage_impl):
     """
     with patch.object(runner, "build_agent", MagicMock()), \
          patch.object(runner, "discover_context", MagicMock(return_value=None)), \
+         patch.object(runner, "load_agent", MagicMock()), \
+         patch("hyperion.crews.workflows.resolve_workflow",
+               new=MagicMock(return_value=_default_workflow())), \
          patch.object(runner, "_plan_task", MagicMock()), \
          patch.object(runner, "_work_task", MagicMock()), \
          patch.object(runner, "_synthesize_task", MagicMock()), \
