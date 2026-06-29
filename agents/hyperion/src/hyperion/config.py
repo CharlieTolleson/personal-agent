@@ -137,9 +137,10 @@ class Settings(BaseSettings):
     model_cheap: str = "cheap"      # tool sub-calls, summarization, compression
 
     # Workflow used when a task does not name one. Persisted via PUT /config and
-    # resolved against config/workflows/<id>.json. "research-default" reproduces
-    # the original plan -> research -> synthesize pipeline.
-    default_workflow: str = "research-default"
+    # resolved against config/workflows/<id>.json. "claude-workflow" is the
+    # seeded plan -> research -> synthesize pipeline (HHH-grounded per-node
+    # instructions); models.json may override this at boot.
+    default_workflow: str = "claude-workflow"
 
     # Task caps (can be overridden per-request via POST /tasks body)
     cap_input_tokens: int = 400_000

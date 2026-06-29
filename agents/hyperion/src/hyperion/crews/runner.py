@@ -296,7 +296,7 @@ def build_agent(record: AgentRecord, task_id: str, node_id: str | None = None) -
 
 def _plan_task(
     request: str, agent: Agent, context_brief: str | None = None, header: str = ""
-) -> Task:
+) -> NodeTask:
     """Build the plan-stage Task: ask the planner to write a structured plan.md.
 
     Args:
@@ -342,7 +342,7 @@ def _plan_task(
 
 def _work_task(
     record: AgentRecord, agent: Agent, feedback: str | None = None, header: str = ""
-) -> Task:
+) -> NodeTask:
     """Build a work-stage Task: execute the plan's subtasks into notes/*.md.
 
     Args:
@@ -370,7 +370,7 @@ def _work_task(
 
 def _synthesize_task(
     record: AgentRecord, agent: Agent, feedback: str | None = None, header: str = ""
-) -> Task:
+) -> NodeTask:
     """Build the synthesize-stage Task: fold plan + notes into artifacts/result.md.
 
     Args:
@@ -490,7 +490,7 @@ async def _run_stage(
     request: str,
     stage: str,
     agents: list[Agent],
-    tasks: list[Task],
+    tasks: list[NodeTask],
     progress_callback: Callable[[str], None] | None,
     deadline: float,
 ) -> Any:

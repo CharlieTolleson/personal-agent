@@ -31,8 +31,6 @@ Run: uv run pytest tests/test_api.py -v
 
 from __future__ import annotations
 
-import asyncio
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -65,7 +63,7 @@ async def test_submit_and_poll(tmp_path):
     from hyperion.config import settings
 
     with patch.object(settings, "tasks_dir", tmp_path):
-        with patch("hyperion.server.api._run_and_update", new=AsyncMock()) as mock_run:
+        with patch("hyperion.server.api._run_and_update", new=AsyncMock()):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
             ) as client:

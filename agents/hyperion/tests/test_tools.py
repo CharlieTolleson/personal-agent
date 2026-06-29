@@ -35,9 +35,6 @@ Key design decisions / non-obvious context
 
 from __future__ import annotations
 
-import os
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -63,7 +60,7 @@ def test_workspace_write_read(tmp_path):
     with patch.object(settings, "tasks_dir", tmp_path):
         writer = WorkspaceWriteTool(task_id="t1")
         reader = WorkspaceReadTool(task_id="t1")
-        msg = writer._run("notes/test.md", "hello world")
+        writer._run("notes/test.md", "hello world")
         assert "hello world" in reader._run("notes/test.md")
 
 

@@ -43,7 +43,6 @@ _shared_qdrant = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_shared_qdrant)
 search_second_brain = _shared_qdrant.search_second_brain
 
-from hyperion.config import settings
 from hyperion.tools.reranker import rerank
 
 

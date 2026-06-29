@@ -8,7 +8,7 @@ agent can appear in more than one node (node id is distinct from agent id).
 
 Workflows are JSON records under ``config/workflows/<id>.json`` (git-tracked,
 volume-mounted like agents). They supersede the old fixed plan→work→synthesize
-pipeline; the seeded ``research-default`` reproduces it exactly so behavior is
+pipeline; the seeded ``claude-workflow`` reproduces it exactly so behavior is
 unchanged when no workflow is chosen.
 """
 
@@ -251,7 +251,7 @@ def get_default_workflow() -> WorkflowRecord:
     """The workflow used when a task does not name one.
 
     Resolution order: the persisted ``settings.default_workflow`` id, else the
-    seeded ``research-default``, else the first workflow on disk. Raises if the
+    seeded ``claude-workflow``, else the first workflow on disk. Raises if the
     config dir has no workflows at all (a broken install)."""
     wanted = settings.default_workflow
     try:
@@ -259,13 +259,13 @@ def get_default_workflow() -> WorkflowRecord:
     except (FileNotFoundError, ValueError):
         pass
     try:
-        return load_workflow("research-default")
+        return load_workflow("claude-workflow")
     except (FileNotFoundError, ValueError):
         pass
     all_wf = load_all_workflows()
     if not all_wf:
         raise FileNotFoundError(
-            f"No workflows found in {_workflows_dir()} (expected at least research-default.json)"
+            f"No workflows found in {_workflows_dir()} (expected at least claude-workflow.json)"
         )
     return all_wf[0]
 
