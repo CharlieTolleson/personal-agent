@@ -1,7 +1,7 @@
 {
   "id": "idea-council",
   "name": "Idea Council",
-  "description": "",
+  "description": "A specialized research team to compose and vet a business plan based on an input idea.",
   "nodes": [
     {
       "id": "market-sizing",
