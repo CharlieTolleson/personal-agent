@@ -1,0 +1,131 @@
+{
+  "id": "metric-movement",
+  "name": "Why Did This Metric Move?",
+  "description": "DRAFT (2026-10-07), proposed as the featured workflow on the portfolio's Hyperion page. Four checks run in parallel (is the move real, which segments account for it, where inside them, what happened in the world), a synthesizer writes a reconciled ledger of causes, a skeptic and a planner work from it side by side, and a brief writer turns both into an executive read. Not runnable as intended yet: the decomposition and drill-down nodes need a deterministic decomposition tool (Contribution to Change for rates, LMDI for products of factors), because the math must run in code, never in the model. Until that tool exists they can only work from a contribution table supplied with the request.",
+  "nodes": [
+    {
+      "id": "data-quality",
+      "agent": "critic",
+      "workflow": null,
+      "kind": "work",
+      "upstream": [],
+      "gate_before": false,
+      "instruction": "Objective: Decide whether the metric move is real before anyone explains it.\n\nInstructions:\n\nCheck the inputs for the two periods being compared: missing or partial days, late-arriving data, duplicated records, and sudden changes in row counts by source.\nCheck the definition: did the metric's formula, filters, or source tables change between the periods? Did any dimension get relabeled or remapped?\nCheck the denominator separately from the numerator, since a rate can move because either one did.\nState a verdict: real, partly an artifact (and how much), or an artifact.\n\nOutput Format:\n\nVerdict on whether the move is real, with the size of any artifact.\nEach check performed and its result.\nAnything the downstream analysis must exclude or correct.",
+      "when": null,
+      "position": {
+        "x": 461.0,
+        "y": 94.0
+      }
+    },
+    {
+      "id": "decomposition",
+      "agent": "developer",
+      "workflow": null,
+      "kind": "work",
+      "upstream": [],
+      "gate_before": false,
+      "instruction": "Objective: Account for the whole move, exactly, by segment.\n\nInstructions:\n\nPick the method by the metric's shape: Contribution to Change for a rate or percentage (split each segment's contribution into a rate effect and a mix effect), LMDI for a metric that is a product of factors such as revenue (one exact contribution per factor).\nRun the decomposition with the deterministic decomposition tool. Never compute or estimate contributions yourself; report only what the tool returns.\nConfirm the residual is zero, or report it if it is not.\nRank segments by absolute contribution, and flag any segment whose mix effect outweighs its rate effect.\n\nOutput Format:\n\nThe method used and why.\nA contribution table that sums to the total move, with the residual.\nThe top contributors, with rate and mix effects shown separately.",
+      "when": null,
+      "position": {
+        "x": 696.0,
+        "y": 94.0
+      }
+    },
+    {
+      "id": "segment-drill",
+      "agent": "developer",
+      "workflow": null,
+      "kind": "work",
+      "upstream": [],
+      "gate_before": false,
+      "instruction": "Objective: Find the specific corner of the business behind the move.\n\nInstructions:\n\nStarting from the top level, drill one dimension at a time (for example region, then category, then channel), using the deterministic decomposition tool at each level.\nAt each level, follow the largest contributor and confirm the children sum to the parent's contribution.\nStop when a single cell explains most of its parent, or when the next split no longer concentrates the move.\n\nOutput Format:\n\nThe drill path, level by level, with each level's contribution.\nThe deepest cell that holds most of the move, and its share of the total.\nConfirmation that every level reconciles.",
+      "when": null,
+      "position": {
+        "x": 935.0,
+        "y": 92.0
+      }
+    },
+    {
+      "id": "external-context",
+      "agent": "researcher",
+      "workflow": null,
+      "kind": "work",
+      "upstream": [],
+      "gate_before": false,
+      "instruction": "Objective: Find what happened outside the data that could explain the move.\n\nInstructions:\n\nSearch for events in the comparison window that touch the business's markets: holidays and calendar shifts, competitor launches or price changes, regulatory changes, supply disruptions, outages, and major news in the affected regions.\nSearch internal notes for launches, experiments, pricing changes, or campaigns that overlapped the window.\nFor each candidate, give its date, the markets it touches, and why it could plausibly move this metric.\nDo not claim any event caused the move; list candidates only.\n\nOutput Format:\n\nA dated list of candidate events, each with its source and the markets it touches.\nA note on any event that lines up with a segment the move concentrates in, if known.",
+      "when": null,
+      "position": {
+        "x": 1158.0,
+        "y": 92.0
+      }
+    },
+    {
+      "id": "ledger",
+      "agent": "synthesizer",
+      "workflow": null,
+      "kind": "synthesize",
+      "upstream": [
+        "data-quality",
+        "decomposition",
+        "segment-drill",
+        "external-context"
+      ],
+      "gate_before": false,
+      "instruction": "Objective: Write the reconciled account of why the metric moved.\n\nInstructions:\n\nStart from the data-quality verdict and remove any artifact from the move before explaining the rest.\nUse the decomposition and the drill path as the ledger: every claim about size comes from them, and the parts must sum to the whole.\nPair each major contributor with any external or internal event that lines up with it in time and market, labeled as a candidate explanation, not a cause.\nSay plainly what share of the move is explained by a named segment and what share is spread thin.\n\nOutput Format:\n\nOne paragraph stating the move and how much of it is real.\nThe ledger: each contributor, its size, and its candidate explanation.\nOpen questions the data cannot answer.",
+      "when": null,
+      "position": {
+        "x": 810.0,
+        "y": 313.0
+      }
+    },
+    {
+      "id": "skeptic",
+      "agent": "critic",
+      "workflow": null,
+      "kind": "work",
+      "upstream": [
+        "ledger"
+      ],
+      "gate_before": false,
+      "instruction": "Objective: Find every way the ledger could mislead a decision-maker.\n\nInstructions:\n\nCheck that every number in the ledger traces to the decomposition output, and that the parts still sum to the whole.\nChallenge each candidate explanation: is it timing only, could a different event explain the same segment, and is a mix effect being described as a performance problem?\nSeparate what the decomposition proves (where the move came from) from what it cannot prove (why it happened, and whether a fix would work).\nName which explanations would need a causal analysis or an experiment before anyone acts on them.\n\nOutput Format:\n\nErrors or overclaims found, each with a correction.\nExplanations ranked by how well supported they are.\nThe questions that need a causal method, and which method fits each.",
+      "when": null,
+      "position": {
+        "x": 1035.0,
+        "y": 432.0
+      }
+    },
+    {
+      "id": "next-steps",
+      "agent": "planner",
+      "workflow": null,
+      "kind": "plan",
+      "upstream": [
+        "ledger"
+      ],
+      "gate_before": false,
+      "instruction": "Objective: Turn the ledger into actions an owner could take this week.\n\nInstructions:\n\nFor each major contributor, propose an owner, an action, and the metric movement the action is meant to recover.\nSeparate actions that are safe to take now from bets that should wait for a causal read or an experiment.\nPropose what to monitor so the next move is caught early.\n\nOutput Format:\n\nActions to take now, each with an owner and expected effect.\nHypotheses worth testing, ranked by how much of the move they could explain.\nMonitoring to add.",
+      "when": null,
+      "position": {
+        "x": 585.0,
+        "y": 432.0
+      }
+    },
+    {
+      "id": "brief",
+      "agent": "synthesizer",
+      "workflow": null,
+      "kind": "synthesize",
+      "upstream": [
+        "skeptic",
+        "next-steps"
+      ],
+      "gate_before": false,
+      "instruction": "Objective: Write the executive brief.\n\nInstructions:\n\nWrite for a leader who will read it once before a meeting.\nLead with one sentence: how much the metric moved, how much of that is real, and where it came from.\nInclude the reconciled ledger as a short table, with any corrections the skeptic made.\nGive the actions to take now, and separately the hypotheses that need testing before anyone acts.\nKeep the caveats the skeptic raised; do not hide uncertainty to make the brief cleaner.\n\nOutput Format:\n\nHeadline sentence.\nLedger table that sums to the move.\nActions now, and hypotheses to test.\nCaveats.",
+      "when": null,
+      "position": {
+        "x": 810.0,
+        "y": 598.0
+      }
+    }
+  ]
+}
