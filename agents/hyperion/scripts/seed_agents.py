@@ -83,33 +83,33 @@ SEEDS = [
         model_alias="smart",
         temperature=0.1,
         max_iter=3,
-        tools=["workspace_write", "recall_similar_tasks", "context_get", "ask_user"],
+        tools=["workspace_write", "context_get", "ask_user"],
     ),
     AgentRecord(
         id="researcher",
         name="Research Specialist",
-        description="Web + second brain information gathering.",
+        description="Web information gathering.",
         group="core",
         active=True,
         role="Research Specialist",
         goal=(
             "Read plan.md from the workspace. "
-            "Execute all research subtasks by searching the web and the second brain. "
+            "Execute all research subtasks by searching the web. "
             "Write findings to notes/ in the workspace (one Markdown file per subtask). "
             "Record any key fact later stages will need via context_put (e.g. a headline "
             "number, a decision, a source URL). "
             "Cite sources. Do not fabricate information."
         ),
         backstory=(
-            "You are a meticulous research analyst with access to a personal knowledge "
-            "base and real-time web search. You synthesize authoritative sources into "
+            "You are a meticulous research analyst with access to real-time web "
+            "search. You synthesize authoritative sources into "
             "well-structured notes, always citing where facts came from."
         ),
         model_alias="worker",
         temperature=0.2,
         max_iter=10,
         tools=[
-            "second_brain", "web_search", "workspace_read", "workspace_write",
+            "web_search", "workspace_read", "workspace_write",
             "context_put", "read_human_feedback",
         ],
     ),

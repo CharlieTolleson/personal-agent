@@ -1,6 +1,6 @@
 # personal-agent
 
-A self-hosted AI workspace: a multi-provider LLM gateway, a multi-agent research orchestrator, a vector-search second brain, and a suite of Claude Code slash commands — all wired together with Docker Compose and running on a single laptop.
+A self-hosted AI workspace: a multi-provider LLM gateway, a multi-agent research orchestrator, a plain-file second brain, and a suite of Claude Code slash commands, all wired together with Docker Compose and running on a single laptop.
 
 ---
 
@@ -11,9 +11,9 @@ This repo is a fully integrated personal AI operating system, built from scratch
 | Component | What it does |
 |---|---|
 | **ai-router** | Docker Compose stack that wires together every backing service on a shared bridge network (`ai-net`). One `docker compose up -d` starts everything. |
-| **Hyperion** | A multi-agent research orchestrator (owned LiteLLM agent loop + FastAPI). Accepts a natural-language task, decomposes it into a plan, researches via web + second brain, and produces a Markdown report. |
+| **Hyperion** | A multi-agent research orchestrator (owned LiteLLM agent loop + FastAPI). Accepts a natural-language task, decomposes it into a plan, researches via the web, and produces a Markdown report. |
 | **Hyperion UI** | React/Vite web console for managing agents, building workflows visually, monitoring live runs, and reconfiguring models without restarting the service. |
-| **Second brain** | An Obsidian vault ingested into Qdrant, searchable by all agents and tools via semantic similarity + reranking. |
+| **Second brain** | An Obsidian vault at `~/secondbrain`, read directly with file search (grep / fs-mcp). The Qdrant vector index was removed on 2026-10-26 after months without reads. |
 | **Skills** | Claude Code slash commands (`/hyperion`, `/research`) and Open WebUI tool plugins that surface Hyperion to any chat interface. |
 
 ---
@@ -31,7 +31,6 @@ This repo is a fully integrated personal AI operating system, built from scratch
 │      ├─ Hyperion MCP :4101  (MCP server for Claude Code) │
 │      └─ Hyperion UI  :4102  (React console)              │
 │                                                          │
-│  Qdrant :6333    (vector DB — second brain + memory)     │
 │  Langfuse :3001  (LLM tracing + observability)           │
 │  SearXNG :8888   (self-hosted federated web search)      │
 │  Infinity :7997  (BAAI/bge-reranker-base)               │
@@ -68,8 +67,8 @@ Sub-workflow nodes let you compose workflows: a node can invoke another whole wo
 Any workflow node can set `gate_before: true` to pause for human approval before executing. Pause/resume state is persisted to SQLite (`aiosqlite`), so a paused task survives a server restart. The API exposes `/tasks/{id}/approve` and `/tasks/{id}/feedback` for the HITL flow.
 
 ### Memory
-- **Episodic memory**: completed task summaries are written to a `hyperion_memory` Qdrant collection and injected as context on subsequent related tasks.
-- **Second brain RAG**: the researcher agent queries the Qdrant `second_brain` collection (the Obsidian vault, text-embedding-3-small, 1536-dim) and reranks results through Infinity before passing them to the LLM.
+- **Task context blackboard**: each run has a `tasks/{id}/context.json` key/value store every stage can read and write.
+- Episodic memory and second-brain RAG (both on Qdrant) were removed on 2026-10-26. Snapshots of their data are in `~/archive/qdrant-2026-10-26/`.
 
 ### Model routing
 Each agent role (`smart` / `worker` / `cheap` / `fast`) maps to a LiteLLM alias. Each alias is a prioritized provider list — Claude → Gemini 2.5 Pro → GPT-4o — with automatic fallback when a key is missing or a call fails. Role-to-model assignments are overridable at runtime via `PUT /config` without a restart, and persisted to `config/models.json` for the next boot.
@@ -95,7 +94,7 @@ tests/
 ├── test_compiler.py        # workflow validation + topo-sort
 ├── test_subworkflow.py     # cross-workflow DAG + cycle detection
 ├── test_hitl.py            # human-in-the-loop pause/resume
-├── test_context.py         # episodic memory injection
+├── test_context.py         # reranker-based context prioritization
 ├── test_agent_loop.py      # owned LiteLLM tool-calling loop
 └── ...
 ```
@@ -137,12 +136,11 @@ curl -X POST http://localhost:4100/tasks \
 # → Admin Panel → Tools → paste skills/tools/hyperion_delegate.py
 ```
 
-### Ingest the second brain
-The vault lives at `~/secondbrain` (outside this repo); its ingest runtime/venv stays here in `secondbrain-pipeline/`.
+### Mirror the second brain to Notion
+The vault lives at `~/secondbrain` (outside this repo); the Notion mirror's runtime/venv stays here in `secondbrain-pipeline/`. There is no vector ingest any more: agents read the vault files directly.
 ```bash
 cd ~/secondbrain
-source ~/ai/secondbrain-pipeline/.venv/bin/activate
-python ingest_obsidian.py --incremental
+~/ai/secondbrain-pipeline/.venv/bin/python sync_md_to_notion.py
 ```
 
 ---
@@ -154,8 +152,6 @@ python ingest_obsidian.py --incremental
 | Agent loop | Owned LiteLLM tool-calling loop (`agent_loop.py`) |
 | LLM proxy | LiteLLM (digest-pinned Docker image) |
 | API | FastAPI + aiosqlite |
-| Vector DB | Qdrant (REST + gRPC) |
-| Embeddings | OpenAI text-embedding-3-small |
 | Reranker | BAAI/bge-reranker-base via Infinity |
 | Web search | SearXNG (self-hosted, federated) |
 | Observability | Langfuse |
@@ -175,16 +171,16 @@ agents/
     src/hyperion/
       agents/       Planner, Researcher, Synthesizer, Developer, Critic
       crews/        Crew assembly, workflow runner, DAG compiler
-      memory/       Episodic memory (Qdrant) + context injection
+      memory/       Task-scoped context blackboard
       server/       FastAPI (:4100), MCP server (:4101), webhooks
-      tools/        Web search, second brain RAG, reranker, Notion
+      tools/        Web search, reranker, Notion, workspace
     config/
       agents/       Agent definitions (JSON, operator-editable)
       workflows/    Workflow DAGs (JSON, operator-editable)
     tests/          pytest suite
   hyperion-ui/      React/Vite web console (:4102)
-  _shared/          Shared utilities (Qdrant client, Notion client, web search)
-secondbrain-pipeline/  Vault ingest runtime (.venv, .env, state) → Qdrant; vault itself at ~/secondbrain
+  _shared/          Shared utilities (Notion client, web search)
+secondbrain-pipeline/  Runtime for the vault's Notion mirror (.venv, .env, md_notion_map.json); vault itself at ~/secondbrain
 skills/
   commands/         Claude Code slash commands
   tools/            Open WebUI tool plugins

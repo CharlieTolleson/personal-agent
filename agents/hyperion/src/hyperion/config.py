@@ -106,9 +106,6 @@ class Settings(BaseSettings):
     # In Docker, set HYPERION_API_URL=http://hyperion:4100 (service name, internal port).
     hyperion_api_url: str = os.getenv("HYPERION_API_URL", "http://localhost:4100")
 
-    # Qdrant
-    qdrant_url: str = "http://localhost:6333"
-
     # SearXNG
     searxng_url: str = "http://localhost:8888"
 

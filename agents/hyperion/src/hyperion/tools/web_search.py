@@ -9,7 +9,7 @@ most relevant hits float to the top before they are handed to the LLM.
 Role in the system
 ------------------
 This is one of the agent-facing tools registered with the agents (alongside
-second_brain, notion, workspace, etc.). Agents invoke it by name
+notion, workspace, etc.). Agents invoke it by name
 ("web_search") with a single query string and receive a formatted Markdown
 block of results.
 

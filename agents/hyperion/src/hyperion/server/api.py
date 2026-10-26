@@ -69,10 +69,8 @@ from hyperion.config import settings
 from hyperion.crews.plan_contract import parse_plan
 from hyperion.crews.runner import resume_task, run_task
 from hyperion.crews.workflows import WorkflowRecord
-from hyperion.memory.episodic import store_episode
 from hyperion.server.affordances import Affordance, AffordanceOption
 from hyperion.server.webhooks import UnsafeCallbackURL, fire_callback, validate_callback_url
-from hyperion.tools.second_brain import SecondBrainTool
 from hyperion.tools.web_search import WebSearchTool
 
 logger = logging.getLogger(__name__)
@@ -842,42 +840,6 @@ class ChatResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def _maybe_store_episode(task_id: str, request: str, result: dict, started: float) -> None:
-    """Persist a one-line episode summary so future tasks can recall similar work.
-    Best-effort — failure to store should never affect the task result.
-
-    Reads up to the first 2000 chars of the result artifact as the summary (falling
-    back to the error or a placeholder) and records it in episodic memory along with
-    success and elapsed duration.
-
-    Args:
-        task_id: The finished task.
-        request: The original task request text.
-        result: The terminal result dict (status + result_path/error).
-        started: Event-loop timestamp captured when the task began (for duration).
-
-    Returns:
-        None.
-
-    Side effects:
-        Writes to episodic memory; any exception is logged and swallowed.
-    """
-    try:
-        summary = ""
-        result_path = result.get("result_path")
-        if result_path and Path(result_path).exists():
-            summary = Path(result_path).read_text(encoding="utf-8")[:2000]
-        store_episode(
-            task_id=task_id,
-            original_request=request,
-            final_summary=summary or (result.get("error") or "(no output)"),
-            success=(result["status"] == "done"),
-            duration_seconds=asyncio.get_event_loop().time() - started,
-        )
-    except Exception as exc:
-        logger.warning("Episode store skipped for %s: %s", task_id, exc)
-
-
 async def _maybe_fire_callback(task_id: str, result: dict) -> None:
     """POST the terminal result to the task's callback_url, once, if one was given.
     Looked up from the DB so it survives a pause/resume across an API restart.
@@ -970,8 +932,7 @@ async def _run_and_update(
     _progress(f"[hyperion] status={result['status']}")
 
     if result["status"] in ("awaiting_approval", "awaiting_input"):
-        return  # paused for human input; episode stored after the task finishes
-    _maybe_store_episode(task_id, request, result, started)
+        return  # paused for human input; callback fires after the task finishes
     await _maybe_fire_callback(task_id, result)
 
 
@@ -1033,7 +994,6 @@ async def _resume_and_update(
 
     if result["status"] in ("awaiting_approval", "awaiting_input"):
         return  # re-paused after a revision / new question
-    _maybe_store_episode(task_id, request, result, started)
     await _maybe_fire_callback(task_id, result)
 
 
@@ -1940,7 +1900,8 @@ async def list_tools() -> list[dict]:
 # Tool endpoints — expose Hyperion's tools over HTTP so OWUI models and other
 # callers can use them without delegating a full orchestration task.
 #
-# This is the canonical implementation for web search and second-brain lookup:
+# This is the canonical implementation for web search (the second-brain endpoint
+# was removed with Qdrant on 2026-10-26):
 # all logic lives here in the Hyperion tools layer. OWUI plugins call these
 # endpoints and are intentionally thin HTTP wrappers — updating the tool logic
 # here automatically propagates to every caller.
@@ -1972,26 +1933,6 @@ async def tool_web_search(
         {"query": str, "result": str} — result is Markdown-formatted web results.
     """
     tool = WebSearchTool(top_k=top_k, categories=categories)
-    loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, tool._run, q)
-    return {"query": q, "result": result}
-
-
-@app.get("/tools/second-brain")
-async def tool_second_brain(q: str, limit: int = 5) -> dict:
-    """Semantic search over the Qdrant second-brain collection.
-
-    Delegates to the same SecondBrainTool that Hyperion agents use internally,
-    including the Infinity reranker pass and the per-call token-budget trim.
-
-    Args:
-        q: Natural-language search query.
-        limit: Maximum number of results to return after reranking.
-
-    Returns:
-        {"query": str, "result": str} — result is Markdown-formatted excerpts.
-    """
-    tool = SecondBrainTool(top_k=limit)
     loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(None, tool._run, q)
     return {"query": q, "result": result}

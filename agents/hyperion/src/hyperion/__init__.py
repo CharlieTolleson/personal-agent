@@ -16,8 +16,8 @@ multi-step tasks. The package is organized into submodules such as:
 - ``llms`` — model wiring; all LLM calls route through the LiteLLM proxy
   (``http://localhost:4000/v1``) per the workspace-wide convention, never
   directly to provider APIs.
-- memory/usage/feedback/scheduler/alerts/observability helpers backed by
-  Qdrant (episodic memory) and Langfuse (tracing).
+- memory/usage/feedback/scheduler/alerts/observability helpers; tracing goes
+  to Langfuse.
 
 Design notes
 -----------

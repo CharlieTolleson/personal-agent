@@ -20,9 +20,8 @@ from pydantic import BaseModel, Field
 from hyperion.agent_loop import ToolSpec
 from hyperion.config import settings
 from hyperion.feedback import AskUserTool, ReadHumanFeedbackTool
-from hyperion.memory.context_store import ContextGetTool, ContextPutTool, RecallSimilarTasksTool
+from hyperion.memory.context_store import ContextGetTool, ContextPutTool
 from hyperion.tools.notion import NotionWriteTool
-from hyperion.tools.second_brain import SecondBrainTool
 from hyperion.tools.web_search import WebSearchTool
 from hyperion.tools.workspace import WorkspaceListTool, WorkspaceReadTool, WorkspaceWriteTool
 
@@ -38,6 +37,10 @@ _SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 # Each factory returns a plain tool object exposing ``name``, ``description``,
 # ``parameters`` (a JSON schema) and ``_run`` (the callable). ``build_tools``
 # wraps each into a ``ToolSpec`` for the owned agent loop (see ``agent_loop``).
+#
+# ``second_brain`` (vault search) and ``recall_similar_tasks`` (episodic memory)
+# were removed on 2026-10-26 along with Qdrant. Agent records that still list
+# either name fail fast in ``build_tools`` instead of silently losing a tool.
 # ---------------------------------------------------------------------------
 
 TOOL_REGISTRY: dict[str, Callable[[str], Any]] = {
@@ -45,10 +48,8 @@ TOOL_REGISTRY: dict[str, Callable[[str], Any]] = {
     "workspace_write": lambda task_id: WorkspaceWriteTool(task_id=task_id),
     "workspace_list": lambda task_id: WorkspaceListTool(task_id=task_id),
     "web_search": lambda task_id: WebSearchTool(),
-    "second_brain": lambda task_id: SecondBrainTool(),
     "context_put": lambda task_id: ContextPutTool(task_id=task_id),
     "context_get": lambda task_id: ContextGetTool(task_id=task_id),
-    "recall_similar_tasks": lambda task_id: RecallSimilarTasksTool(task_id=task_id),
     "read_human_feedback": lambda task_id: ReadHumanFeedbackTool(task_id=task_id),
     "ask_user": lambda task_id: AskUserTool(task_id=task_id),
     "notion_write": lambda task_id: NotionWriteTool(),

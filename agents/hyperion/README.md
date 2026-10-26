@@ -1,8 +1,8 @@
 # Hyperion
 
-Self-hosted multi-agent AI system. Decomposes natural-language tasks, researches via web + second brain, optionally executes code, and synthesizes polished Markdown reports.
+Self-hosted multi-agent AI system. Decomposes natural-language tasks, researches via the web, optionally executes code, and synthesizes polished Markdown reports.
 
-**Stack:** LiteLLM proxy · Qdrant · SearXNG · Infinity reranker · Langfuse
+**Stack:** LiteLLM proxy · SearXNG · Infinity reranker · Langfuse
 
 ## Services
 
@@ -14,7 +14,7 @@ Self-hosted multi-agent AI system. Decomposes natural-language tasks, researches
 | Infinity | 7997 | Reranker (BAAI/bge-reranker-base) |
 | Langfuse | 3001 | Tracing UI |
 
-All services are on `ai-net` alongside the existing LiteLLM proxy (4000) and Qdrant (6333).
+All services are on `ai-net` alongside the existing LiteLLM proxy (4000).
 
 ## Setup
 
@@ -37,13 +37,7 @@ bash scripts/create_hyperion_key.sh
 # Copy the output key to agents/hyperion/.env as LITELLM_HYPERION_KEY
 ```
 
-### 3. Initialize Qdrant hyperion_memory collection
-
-```bash
-uv run python scripts/init_qdrant.py
-```
-
-### 4. Run locally (development)
+### 3. Run locally (development)
 
 ```bash
 # FastAPI service (port 4100)
@@ -53,7 +47,7 @@ uv run hyperion-api
 uv run hyperion-mcp
 ```
 
-### 5. Run via Docker
+### 4. Run via Docker
 
 ```bash
 cd ~/ai/ai-router
@@ -65,14 +59,14 @@ docker compose -f docker-compose.yml -f ../agents/hyperion/docker-compose.overri
 ### From Open WebUI
 
 Paste `~/ai/skills/tools/hyperion_delegate.py` into **Admin Panel → Workspace → Tools**.
-Then in any chat: `delegate_task: summarize the current state of my second brain re: career goals`
+Then in any chat: `delegate_task: summarize this month's notable AI agent framework releases`
 
 ### From Claude Code
 
 The MCP server is registered in `~/ai/.mcp.json`. Use the `/hyperion` skill:
 
 ```
-/hyperion summarize my career goals from my second brain
+/hyperion summarize this month's notable AI agent framework releases
 /hyperion --critic write a detailed analysis of my investment portfolio
 /hyperion --large research the latest developments in agentic AI systems
 ```
@@ -83,7 +77,7 @@ The MCP server is registered in `~/ai/.mcp.json`. Use the `/hyperion` skill:
 # Submit a task
 curl -X POST http://localhost:4100/tasks \
   -H "Content-Type: application/json" \
-  -d '{"task": "Summarize my career goals from my second brain"}'
+  -d '{"task": "Summarize this month's notable AI agent framework releases"}'
 
 # Poll for status
 curl http://localhost:4100/tasks/{task_id}
@@ -196,9 +190,9 @@ src/hyperion/
 ├── llms.py              per-role LLM factories
 ├── observability.py     Langfuse handler
 ├── agents/              Planner, Researcher, Synthesizer, Developer, Critic
-├── tools/               second_brain, web_search, reranker, workspace
+├── tools/               web_search, reranker, workspace
 ├── crews/default.py     crew assembly + circuit breakers
-├── memory/episodic.py   task history in Qdrant hyperion_memory
+├── memory/             task-scoped context blackboard
 └── server/
     ├── api.py           FastAPI (port 4100)
     └── mcp.py           MCP server (port 4101)
@@ -209,11 +203,11 @@ src/hyperion/
 All 10 phases complete. (Phase summaries below; the living architecture
 reference is `~/secondbrain/Projects/AgentArchitecture/architecture.md`.)
 
-- **Phase 0** Contracts & substrate (LiteLLM, Langfuse, SearXNG, Infinity, Qdrant collection)
+- **Phase 0** Contracts & substrate (LiteLLM, Langfuse, SearXNG, Infinity; Qdrant removed 2026-10-26)
 - **Phase 1** Unified stage-runner (tools, crew, FastAPI, MCP, OWUI tool, Claude Code surface)
 - **Phase 2** Routing engine (per-role/per-alias model routing, fallbacks)
 - **Phase 3** Pausable execution + human-in-the-loop plan gate
-- **Phase 4** Context layer (episodic memory, second-brain RAG)
+- **Phase 4** Context layer (episodic memory and second-brain RAG, both removed with Qdrant 2026-10-26)
 - **Phase 5** Agent CRUD + options API (registry-backed agents)
 - **Phase 6** Feedback, alerts, affordances
 - **Phase 7** Web UI (`hyperion-ui`, :4102)

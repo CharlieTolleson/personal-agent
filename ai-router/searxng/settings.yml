@@ -11,7 +11,7 @@
 #   - Runs as a service in the ~/ai/ai-router Docker Compose stack.
 #   - Hyperion agents query it (typically via the JSON format) for live web
 #     results during research/critique workflows; results may then be reranked
-#     by Infinity and/or embedded into Qdrant.
+#     by Infinity.
 #
 # Key design decisions / non-obvious context:
 #   - `use_default_settings: true` (below) means this file only OVERRIDES the
