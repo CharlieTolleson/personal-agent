@@ -1,7 +1,7 @@
 [project]
 name = "hyperion"
 version = "0.1.0"
-description = "Self-hosted multi-agent AI system (owned LiteLLM agent loop + Qdrant)"
+description = "Self-hosted multi-agent AI system (owned LiteLLM agent loop)"
 readme = "README.md"
 authors = [
     { name = "Charlie Tolleson", email = "charlietolleson@gmail.com" }
@@ -18,7 +18,6 @@ dependencies = [
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
     "python-dotenv>=1.0",
-    "qdrant-client>=1.9",
     "uvicorn[standard]>=0.30",
 ]
 

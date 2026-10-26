@@ -385,7 +385,7 @@ export default function AgentEditor() {
         <div className="card">
           <label className="label">
             Tools
-            <InfoTip text="External capabilities this agent may call during a run — e.g. web search, second-brain retrieval, code execution. Hover each to see what it does." />
+            <InfoTip text="External capabilities this agent may call during a run (e.g. web search, workspace files, code execution). Hover each to see what it does." />
           </label>
           <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
             {(tools ?? []).map((t) => (

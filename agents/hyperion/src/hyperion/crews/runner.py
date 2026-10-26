@@ -6,7 +6,7 @@ It is simultaneously data-driven (agents from records), workflow-DAG-driven
 It is rewritten exactly ONCE (Phase 1) with stubbed hook points that later phases fill:
 
     gate()              HITL pause between stages                 (filled: Phase 3)
-    discover_context()  pre-plan context brief                   (filled: Phase 4)
+    discover_context()  pre-plan context brief                   (no-op since 2026-10-26)
     inject_feedback()   drain human feedback between subtasks     (filled: Phase 6)
 
 No later phase restructures this module — phases only fill the stubs and extend the
@@ -133,73 +133,23 @@ def gate(task_id: str, stage: str, hitl: str) -> bool:
 
 
 def discover_context(task_id: str, request: str) -> str | None:
-    """Auto-discover a context brief before planning (Phase 4).
+    """Pre-plan context-brief hook (Phase 4); currently a no-op.
 
-    Recalls similar past tasks from episodic memory and asks the cheap model for a
-    short brief the planner can lean on. Best-effort: any failure (no memory, proxy
-    down) returns None and planning proceeds without a brief. The brief is also
-    written to the task blackboard so every stage can read it.
+    This used to recall similar past runs from episodic memory (the Qdrant
+    ``hyperion_memory`` collection) and summarize them into a brief for the
+    planner. Episodic memory was removed with Qdrant on 2026-10-26, so there is
+    nothing to recall. The hook and the ``context_brief`` plumbing stay because
+    they are source-agnostic: a future context source only has to return a
+    string here.
+
+    Args:
+        task_id: The task being planned.
+        request: The raw task request.
+
+    Returns:
+        Always ``None`` (planning proceeds without a brief).
     """
-    from hyperion.memory.context_store import context_put
-    from hyperion.memory.episodic import recall_similar_tasks
-
-    try:
-        similar = recall_similar_tasks(request, limit=3)
-    except Exception as exc:  # memory is optional infra
-        logger.warning("discover_context: recall failed for %s: %s", task_id, exc)
-        similar = []
-
-    prior_lines = [
-        f"- [{h.get('task_id')}] {h.get('request', '')[:160]} "
-        f"(score {h.get('score')}, {'ok' if h.get('success') else 'failed'})"
-        for h in similar
-    ]
-    prior_block = "\n".join(prior_lines) if prior_lines else "(none found)"
-
-    brief = _summarize_context(task_id, request, prior_block)
-    if not brief and prior_lines:
-        # Fall back to a plain listing of prior tasks if the cheap call failed.
-        brief = "Relevant prior tasks:\n" + prior_block
-
-    if brief:
-        context_put(task_id, "context_brief", brief)
-        if similar:
-            context_put(task_id, "recalled_task_ids", [h.get("task_id") for h in similar])
-    return brief or None
-
-
-def _summarize_context(task_id: str, request: str, prior_block: str) -> str | None:
-    """One cheap-model pass that turns recalled tasks into a short planning brief."""
-    try:
-        from openai import OpenAI
-
-        client = OpenAI(base_url=settings.litellm_base_url, api_key=settings.llm_api_key)
-        resp = client.chat.completions.create(
-            model=settings.model_cheap,
-            temperature=0.0,
-            max_tokens=400,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You write a 3-5 sentence context brief for a planner. Note any "
-                        "relevant prior task it should reuse or avoid repeating. If nothing "
-                        "is relevant, reply exactly: NONE."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": f"New request:\n{request}\n\nPrior tasks:\n{prior_block}",
-                },
-            ],
-        )
-        text = (resp.choices[0].message.content or "").strip()
-        if not text or text.upper() == "NONE":
-            return None
-        return text
-    except Exception as exc:
-        logger.warning("discover_context: cheap summarize failed for %s: %s", task_id, exc)
-        return None
+    return None
 
 
 def inject_feedback(task_id: str) -> str | None:

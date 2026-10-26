@@ -4,8 +4,6 @@ This package groups the concrete tool implementations that Hyperion's agents
 (planner / researcher / developer / critic / synthesizer) can invoke while
 executing a task. Each sibling module exposes one capability:
 
-- ``second_brain``: semantic search over Charlie's Obsidian/PARA vault, backed by
-  the Qdrant vector DB (``second_brain`` collection).
 - ``web_search``: live web lookups via the SearXNG meta-search instance in the
   ai-router stack.
 - ``reranker``: relevance re-ranking of candidate passages via the Infinity

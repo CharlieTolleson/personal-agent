@@ -6,7 +6,7 @@
 #   Defines the two Hyperion runtime containers (the FastAPI orchestrator API
 #   and the MCP tool server) as a Compose *override*. An override file is merged
 #   on top of a base compose file: it does NOT start the supporting
-#   infrastructure (LiteLLM, Qdrant, SearXNG, Infinity, Langfuse) itself — those
+#   infrastructure (LiteLLM, SearXNG, Infinity, Langfuse) itself; those
 #   services are expected to already exist in the base file / be running.
 #
 # WHERE THIS FITS
@@ -22,7 +22,7 @@
 #   This override is kept for STANDALONE use — running only the Hyperion
 #   containers while the infra services are brought up separately. It is layered
 #   on top of the base ai-router compose file so service names like `litellm`,
-#   `qdrant`, etc. resolve on the shared network:
+#   `searxng`, etc. resolve on the shared network:
 #       cd ~/ai/ai-router
 #       docker compose -f docker-compose.yml -f ../agents/hyperion/docker-compose.override.yml \
 #         up hyperion hyperion-mcp
@@ -65,13 +65,11 @@ services:
       # Internal service endpoints use Docker DNS names + in-network ports,
       # NOT the host-published localhost ports (see KEY DESIGN NOTES above).
       LITELLM_BASE_URL: "http://litellm:4000/v1"   # all LLM calls route through the LiteLLM proxy
-      QDRANT_URL: "http://qdrant:6333"             # vector DB for episodic/context memory
       SEARXNG_URL: "http://searxng:8888"           # web_search tool backend (internal port 8888)
       INFINITY_URL: "http://infinity:7997"         # reranker tool backend
       LANGFUSE_HOST: "http://langfuse:3000"        # LLM tracing; :3000 internally, :3001 on host
     depends_on:                 # start ordering only (does not wait for healthchecks)
       - litellm
-      - qdrant
       - searxng
       - infinity
       - langfuse
@@ -100,13 +98,11 @@ services:
     environment:
       # Same internal endpoint convention as the hyperion service above.
       LITELLM_BASE_URL: "http://litellm:4000/v1"
-      QDRANT_URL: "http://qdrant:6333"
       SEARXNG_URL: "http://searxng:8888"
       INFINITY_URL: "http://infinity:7997"
       LANGFUSE_HOST: "http://langfuse:3000"
     depends_on:                 # only the dependencies the MCP server actually needs at startup
       - litellm
-      - qdrant
     networks:
       - ai-net
     command: ["uv", "run", "hyperion-mcp"]         # launch the MCP tool server entrypoint

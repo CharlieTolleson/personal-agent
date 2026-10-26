@@ -9,7 +9,7 @@ Role in the system
 This module is the canonical entry point for any agent in ``~/ai/agents`` that
 needs to read from or write to Notion (per the ``~/ai`` conventions: "Notion
 reads in scripts use ``agents/_shared/notion_client.py``"). It is consumed by,
-e.g., the secondbrain Notion mirror and ingestion scripts. Centralizing access
+e.g., the secondbrain Notion mirror script. Centralizing access
 here keeps authentication, pagination, and the Notion block/property JSON shape
 in one place rather than re-implemented per script.
 

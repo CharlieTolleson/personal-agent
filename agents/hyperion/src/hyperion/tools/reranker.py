@@ -9,8 +9,8 @@ is to the query, then returns the candidates ordered best-first.
 
 Role in the system
 -------------------
-Vector search (Qdrant) returns candidates by embedding similarity, which is fast
-but coarse. This module adds a second, more precise ranking pass: the
+Retrieval (e.g. SearXNG web results) returns candidates in a fast but coarse
+order. This module adds a second, more precise ranking pass: the
 ``bge-reranker-base`` cross-encoder reads each (query, document) pair jointly and
 produces a sharper relevance score. Agents/tools call :func:`prioritize` (or the
 lower-level :func:`rerank`) to keep only the most relevant — and budget-fitting —

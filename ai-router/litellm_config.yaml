@@ -6,7 +6,7 @@
 #   The single config that drives the LiteLLM proxy container in the ai-router
 #   Docker Compose stack. The proxy exposes an OpenAI-compatible API at
 #   http://localhost:4000/v1 and is the ONLY path through which the rest of the
-#   ecosystem (Hyperion agents, the second-brain ingestion pipeline, Open WebUI,
+#   ecosystem (Hyperion agents, Open WebUI,
 #   slash-command skills) is allowed to reach an LLM. No component calls a
 #   provider API (OpenAI / Anthropic / Gemini) directly — see ~/ai/CLAUDE.md.
 #
@@ -141,7 +141,8 @@ model_list:
       api_key: os.environ/GEMINI_API_KEY
 
   # ── Embeddings ────────────────────────────────────────────────────────────
-  # text-embedding-3-small is used for Qdrant RAG (requires OPENAI_API_KEY)
+  # text-embedding-3-small has no in-repo consumer since Qdrant was removed
+  # (2026-10-26); kept for ad-hoc use (requires OPENAI_API_KEY).
 
   - model_name: text-embedding-3-small
     litellm_params:

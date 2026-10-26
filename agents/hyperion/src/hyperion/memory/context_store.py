@@ -3,7 +3,7 @@ Task-scoped context blackboard (Phase 4).
 
 A per-task ``tasks/{id}/context.json`` key/value store that every stage can read
 and write. It is the cross-stage channel for facts that aren't notes or artifacts —
-e.g. the auto-discovered ``context_brief``, recalled prior-task ids, or a fact the
+e.g. a ``context_brief`` for the planner, or a fact the
 researcher wants the synthesizer to see without re-deriving.
 
 ``context_put`` / ``context_get`` are exposed both as plain functions (used by the
@@ -135,36 +135,3 @@ class ContextGetTool:
             return json.dumps(data, ensure_ascii=False) if data else "(context is empty)"
         value = context_get(self.task_id, key)
         return "(not set)" if value is None else json.dumps(value, ensure_ascii=False)
-
-
-class RecallSimilarTasksTool:
-    name = "recall_similar_tasks"
-    description = (
-        "Search memory of past completed tasks for ones similar to a query. "
-        "Use before planning to reuse prior work. Input: a natural-language query."
-    )
-    parameters = {
-        "type": "object",
-        "properties": {
-            "query": {"type": "string", "description": "Natural-language query."}
-        },
-        "required": ["query"],
-    }
-
-    def __init__(self, task_id: str = ""):
-        self.task_id = task_id
-
-    def _run(self, query: str) -> str:
-        from hyperion.memory.episodic import recall_similar_tasks
-
-        hits = recall_similar_tasks(query, limit=5)
-        if not hits:
-            return "(no similar past tasks found)"
-        lines = ["## Similar past tasks"]
-        for h in hits:
-            status = "ok" if h.get("success") else "failed"
-            lines.append(
-                f"- [{h.get('task_id')}] ({status}, score {h.get('score')}): "
-                f"{h.get('request', '')[:160]}"
-            )
-        return "\n".join(lines)

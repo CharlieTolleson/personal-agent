@@ -15,7 +15,6 @@
   "max_iter": 3,
   "tools": [
     "workspace_write",
-    "recall_similar_tasks",
     "context_get",
     "ask_user"
   ],

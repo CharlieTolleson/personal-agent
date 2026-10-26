@@ -3,7 +3,7 @@ webhooks.py — outbound task-completion callbacks with an SSRF guard (Phase 9).
 
 A task may carry a ``callback_url``; on terminal completion we POST the result
 there exactly once. Because the URL is caller-supplied and the API can reach
-internal services (LiteLLM, Qdrant, Langfuse, the Docker network), every URL is
+internal services (LiteLLM, Langfuse, the Docker network), every URL is
 checked against an SSRF allowlist first: the host must resolve *entirely* to
 private, loopback, or link-local addresses. A host that resolves to any public
 address — or fails to resolve — is rejected before any connection is attempted.
