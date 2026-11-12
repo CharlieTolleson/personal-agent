@@ -17,6 +17,7 @@
 #   LiteLLM        (4000)  OpenAI-compatible proxy → GPT-4o, Gemini, Claude
 #   Open WebUI     (3000)  Chat UI (container listens on 8080)
 #   fs-mcp         (none)  Filesystem MCP→OpenAPI bridge (internal :8000 only)
+#   vault-mcp      (none)  Read-only vault-only file tools for OWUI (internal :8000 only)
 #   ai-postgres    (none)  Shared DB for LiteLLM key budgets + Langfuse (internal)
 #   Langfuse       (3001)  LLM tracing UI (container listens on 3000)
 #   SearXNG        (8888)  Federated meta-search JSON API (container :8080)
@@ -144,9 +145,15 @@ services:
       - ai-net
 
   # ---------------------------------------------------------------------------
-  # fs-mcp (mcpo) — filesystem MCP server bridged to OpenAPI for Open WebUI.
-  # Gives OWUI agents full read/write file ops over the whole ~/ai workspace,
-  # This is also how OWUI models read the vault now that Qdrant is gone.
+  # fs-mcp (mcpo): filesystem MCP server bridged to OpenAPI for Open WebUI.
+  # Gives OWUI agents full read/write file ops over ~/ai, ~/secondbrain and
+  # ~/mobile-agent (including ~/ai/ai-router/.env). Since 2026-11-11 it is NOT a
+  # default tool on any model: everyday vault reads use the read-only `vault-mcp`
+  # below, and this server is switched on in a chat only when you want file edits.
+  #
+  # Pinned (2026-11-11): the mcpo image by digest and server-filesystem to 1.0.0,
+  # the version this container has been running, so a recreate cannot silently
+  # pull a new release of a tool with write access.
   #
   # mcpo runs the @modelcontextprotocol/server-filesystem MCP server INSIDE this
   # container and exposes it as OpenAPI on :8000. The ~/ai mount therefore lives
@@ -157,7 +164,7 @@ services:
   # auth = Bearer, key = ${MCPO_API_KEY}. OpenAPI spec at /openapi.json.
   # ---------------------------------------------------------------------------
   fs-mcp:
-    image: ghcr.io/open-webui/mcpo:main
+    image: ghcr.io/open-webui/mcpo@sha256:1e82c9555c19e50b80745705f32b47a2647589f35279527b5118ecd3a71bd467   # was :main
     container_name: fs-mcp
     restart: unless-stopped
     # Not published to the host — OWUI reaches it in-network at http://fs-mcp:8000.
@@ -168,11 +175,52 @@ services:
     # allowed roots). mobile-agent added 2026-06-23.
     command: >
       --host 0.0.0.0 --port 8000 --api-key "${MCPO_API_KEY}"
-      -- npx -y @modelcontextprotocol/server-filesystem /ai /secondbrain /mobile-agent
+      -- npx -y @modelcontextprotocol/server-filesystem@1.0.0 /ai /secondbrain /mobile-agent
     volumes:
       - ${HOME}/ai:/ai:rw
       - ${HOME}/secondbrain:/secondbrain:rw
       - ${HOME}/mobile-agent:/mobile-agent:rw
+    networks:
+      - ai-net
+
+  # ---------------------------------------------------------------------------
+  # vault-mcp (mcpo): read-only, vault-only file tools for Open WebUI.
+  #
+  # Why it exists (decided 2026-11-11): after Qdrant was removed, OWUI models read
+  # the vault through fs-mcp, which can also write and can read ~/ai/ai-router/.env
+  # (API keys). The same models have web_search, so a prompt injection in a web
+  # page could exfiltrate a key or write to the vault. This server is the default
+  # file tool for the charlie-assistant model instead:
+  #   - mounts ONLY ~/secondbrain, and read-only (:ro), so writes fail at the
+  #     kernel level whatever tool the model calls;
+  #   - ~/secondbrain/.env is a symlink into ~/ai, whose target is not mounted
+  #     here, so it cannot be read.
+  # It has its OWN key (VAULT_MCPO_API_KEY in ai-router/.env), not MCPO_API_KEY:
+  # both containers share ai-net, so a compromised vault-mcp holding fs-mcp's key
+  # could call the read/write server.
+  # Image (by digest) and server-filesystem version are pinned for the same
+  # supply-chain reason as fs-mcp; 2.3.0 was the version tested on 2026-11-11.
+  #
+  # OWUI wiring (tool server connection, stored in OWUI's config DB):
+  #   url http://vault-mcp:8000, auth_type bearer, key VAULT_MCPO_API_KEY,
+  #   info.id "vault-ro" (models reference it as `server:vault-ro`; an explicit
+  #   id stops a list reorder from re-pointing that at fs-mcp), and
+  #   function_name_filter_list = the full `tool_<name>_post` ids of the read
+  #   tools only, so the model never sees write tools.
+  #
+  # Not covered: a prompt injection inside a note could still try to leak note
+  # CONTENT (e.g. via a markdown image URL). This server protects keys and
+  # prevents writes; it does not stop reads of the vault itself.
+  # ---------------------------------------------------------------------------
+  vault-mcp:
+    image: ghcr.io/open-webui/mcpo@sha256:1e82c9555c19e50b80745705f32b47a2647589f35279527b5118ecd3a71bd467
+    container_name: vault-mcp
+    restart: unless-stopped
+    command: >
+      --host 0.0.0.0 --port 8000 --api-key "${VAULT_MCPO_API_KEY}"
+      -- npx -y @modelcontextprotocol/server-filesystem@2.3.0 /secondbrain
+    volumes:
+      - ${HOME}/secondbrain:/secondbrain:ro
     networks:
       - ai-net
 
