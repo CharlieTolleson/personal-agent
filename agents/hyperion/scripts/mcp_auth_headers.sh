@@ -12,8 +12,10 @@
 # WHERE THE TOKEN COMES FROM
 #   HYPERION_API_TOKEN in ~/ai/ai-router/.env (override the file with
 #   HYPERION_ENV_FILE). That gitignored file is the single store; the containers
-#   get the same value through docker compose. If HYPERION_API_TOKEN is already
-#   in the environment, that wins.
+#   get the same value through docker compose. The file wins over any
+#   HYPERION_API_TOKEN in the environment, so a shell holding a pre-rotation
+#   value can't break the connection; the environment is only a fallback when the
+#   file has no token (e.g. local development with a different env file).
 #
 # OUTPUT
 #   stdout: {"Authorization": "Bearer <token>"} (the headersHelper contract; this
@@ -34,19 +36,20 @@ ENV_FILE="${HYPERION_ENV_FILE:-$HOME/ai/ai-router/.env}"
 HYPERION_ENV_FILE="$ENV_FILE" exec python3 - <<'PY'
 import json, os, sys
 
-token = os.environ.get("HYPERION_API_TOKEN", "").strip()
+token = ""
+path = os.environ["HYPERION_ENV_FILE"]
+try:
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if line.startswith("export "):
+                line = line[len("export "):].lstrip()
+            if line.startswith("HYPERION_API_TOKEN="):
+                token = line.split("=", 1)[1].strip().strip('"').strip("'")
+except OSError:
+    pass
 if not token:
-    path = os.environ["HYPERION_ENV_FILE"]
-    try:
-        with open(path, encoding="utf-8") as fh:
-            for line in fh:
-                line = line.strip()
-                if line.startswith("export "):
-                    line = line[len("export "):].lstrip()
-                if line.startswith("HYPERION_API_TOKEN="):
-                    token = line.split("=", 1)[1].strip().strip('"').strip("'")
-    except OSError:
-        pass
+    token = os.environ.get("HYPERION_API_TOKEN", "").strip()
 if len(token) < 32:
     sys.stderr.write("mcp_auth_headers: HYPERION_API_TOKEN not found or too short\n")
     sys.exit(1)

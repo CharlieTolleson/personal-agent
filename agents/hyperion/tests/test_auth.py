@@ -290,3 +290,17 @@ async def test_mcp_proxy_forwards_token_to_api(monkeypatch) -> None:
     out = await mcp_mod._post_api("/tasks/t1/approve", {"action": "approve"})
     assert captured["auth"] == f"Bearer {TEST_TOKEN}"
     assert "task_id: t1" in out[0].text
+
+
+def test_mcp_token_never_logged(caplog) -> None:
+    """MCP refusals and successes log neither the real token nor a wrong one."""
+    from hyperion.server.mcp import make_starlette_app
+
+    caplog.set_level(logging.DEBUG)
+    with TestClient(make_starlette_app()) as client:
+        client.post("/mcp", json=_INIT,
+                    headers={**_MCP_HEADERS, "Authorization": f"Bearer {WRONG_TOKEN}"})
+        client.post("/mcp", json=_INIT, headers={**_MCP_HEADERS, **AUTH_HEADERS})
+    assert "auth: refused POST /mcp" in caplog.text
+    assert TEST_TOKEN not in caplog.text
+    assert WRONG_TOKEN not in caplog.text

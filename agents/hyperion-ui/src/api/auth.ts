@@ -69,11 +69,18 @@ export function authHeaders(): Record<string, string> {
 
 /**
  * React to an API response: on 401, drop the stored token and ask for a new one.
+ *
+ * Only clears when the rejected request carried the token that is still stored, so
+ * a late 401 for a request sent with an old token can't wipe a freshly saved one.
+ *
  * @param resp - Any response from the Hyperion API.
+ * @param sentHeaders - The auth headers that request was sent with (`authHeaders()`).
  */
-export function noteAuthFailure(resp: Response): void {
-  if (resp.status === 401) {
-    clearToken();
-    window.dispatchEvent(new Event(AUTH_REQUIRED_EVENT));
-  }
+export function noteAuthFailure(resp: Response, sentHeaders: Record<string, string>): void {
+  if (resp.status !== 401) return;
+  const sent = sentHeaders.Authorization ?? null;
+  const current = authHeaders().Authorization ?? null;
+  if (sent !== current) return;
+  clearToken();
+  window.dispatchEvent(new Event(AUTH_REQUIRED_EVENT));
 }

@@ -293,18 +293,20 @@ export interface WorkflowRecord {
  *
  * @typeParam T - Expected shape of the parsed JSON response body.
  * @param path - API path beginning with "/" (appended to {@link API_BASE}).
- * @param init - Optional `fetch` options (method, body, etc.); spread over the
- *   defaults so callers can override or add headers.
+ * @param init - Optional `fetch` options (method, body, etc.); callers may add or
+ *   override headers, except `Authorization`, which is always the stored token.
  * @returns The parsed response body typed as `T`.
  * @throws Error if the response status is not ok (2xx).
  */
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const resp = await fetch(API_BASE + path, {
-    ...init,
-    // Merged after `init` so a caller's headers can't drop the bearer token.
-    headers: { "content-type": "application/json", ...init?.headers, ...authHeaders() },
-  });
-  noteAuthFailure(resp);
+  const auth = authHeaders();
+  // Normalize through Headers so any HeadersInit shape (object, array, Headers)
+  // survives; Authorization is set last so a caller can't drop the bearer token.
+  const headers = new Headers({ "content-type": "application/json" });
+  new Headers(init?.headers).forEach((value, key) => headers.set(key, value));
+  for (const [key, value] of Object.entries(auth)) headers.set(key, value);
+  const resp = await fetch(API_BASE + path, { ...init, headers });
+  noteAuthFailure(resp, auth);
   if (!resp.ok) {
     let detail = resp.statusText;
     try {
@@ -715,8 +717,9 @@ export function useSaveToNotion(id: string) {
  * @throws Error if the export response is not ok (2xx).
  */
 export async function downloadConfigExport(): Promise<void> {
-  const resp = await fetch(`${API_BASE}/config/export`, { headers: authHeaders() });
-  noteAuthFailure(resp);
+  const auth = authHeaders();
+  const resp = await fetch(`${API_BASE}/config/export`, { headers: auth });
+  noteAuthFailure(resp, auth);
   if (!resp.ok) throw new Error(`${resp.status}: ${resp.statusText}`);
   const blob = await resp.blob();
   // Keep the server's filename when it sends one.
@@ -726,7 +729,8 @@ export async function downloadConfigExport(): Promise<void> {
   a.href = url;
   a.download = match?.[1] ?? "hyperion-config.zip";
   a.click();
-  URL.revokeObjectURL(url);
+  // Revoke later: revoking synchronously can cancel the download in some browsers.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /**
@@ -737,10 +741,9 @@ export async function downloadConfigExport(): Promise<void> {
  * @throws Error `HTTP <status>` on a non-2xx response.
  */
 export async function fetchArtifactText(taskId: string, name: string): Promise<string> {
-  const resp = await fetch(`${API_BASE}/tasks/${taskId}/artifacts/${name}`, {
-    headers: authHeaders(),
-  });
-  noteAuthFailure(resp);
+  const auth = authHeaders();
+  const resp = await fetch(`${API_BASE}/tasks/${taskId}/artifacts/${name}`, { headers: auth });
+  noteAuthFailure(resp, auth);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   return resp.text();
 }
@@ -762,12 +765,13 @@ export async function importConfig(
 ): Promise<{ imported: string[]; count: number; workflows: string[] }> {
   const form = new FormData();
   form.append("file", file);
+  const auth = authHeaders();
   const resp = await fetch(`${API_BASE}/config/import`, {
     method: "POST",
     body: form,
-    headers: authHeaders(),
+    headers: auth,
   });
-  noteAuthFailure(resp);
+  noteAuthFailure(resp, auth);
   if (!resp.ok) {
     let detail = resp.statusText;
     try {
