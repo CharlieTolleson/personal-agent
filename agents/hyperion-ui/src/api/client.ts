@@ -32,6 +32,7 @@ import {
   useQueryClient,
   type UseQueryOptions,
 } from "@tanstack/react-query";
+import { authHeaders, noteAuthFailure } from "./auth";
 
 /**
  * Base URL for every Hyperion API request.
@@ -282,7 +283,8 @@ export interface WorkflowRecord {
 
 /**
  * Core fetch wrapper for JSON endpoints. Prepends {@link API_BASE}, sets the
- * JSON content-type header, and normalizes error handling.
+ * JSON content-type and bearer-token headers, and normalizes error handling.
+ * A 401 clears the stored token and reopens the token form (`api/auth.ts`).
  *
  * On a non-2xx response it throws an `Error` whose message is `"<status>:
  * <detail>"`, preferring the backend's `detail` field (FastAPI convention) and
@@ -291,16 +293,20 @@ export interface WorkflowRecord {
  *
  * @typeParam T - Expected shape of the parsed JSON response body.
  * @param path - API path beginning with "/" (appended to {@link API_BASE}).
- * @param init - Optional `fetch` options (method, body, etc.); spread over the
- *   defaults so callers can override or add headers.
+ * @param init - Optional `fetch` options (method, body, etc.); callers may add or
+ *   override headers, except `Authorization`, which is always the stored token.
  * @returns The parsed response body typed as `T`.
  * @throws Error if the response status is not ok (2xx).
  */
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const resp = await fetch(API_BASE + path, {
-    headers: { "content-type": "application/json" },
-    ...init,
-  });
+  const auth = authHeaders();
+  // Normalize through Headers so any HeadersInit shape (object, array, Headers)
+  // survives; Authorization is set last so a caller can't drop the bearer token.
+  const headers = new Headers({ "content-type": "application/json" });
+  new Headers(init?.headers).forEach((value, key) => headers.set(key, value));
+  for (const [key, value] of Object.entries(auth)) headers.set(key, value);
+  const resp = await fetch(API_BASE + path, { ...init, headers });
+  noteAuthFailure(resp, auth);
   if (!resp.ok) {
     let detail = resp.statusText;
     try {
@@ -705,13 +711,41 @@ export function useSaveToNotion(id: string) {
 // ---------------------------------------------------------------------------
 
 /**
- * Build the absolute URL for the config export endpoint. Returned as a plain
- * string (not fetched) so the UI can use it as an `<a href>` download link — the
- * response is a binary zip, which the JSON `req` helper cannot handle.
- * @returns Absolute URL to GET the config export zip.
+ * Download the config export zip. Fetched (not a plain `<a href>` link) because a
+ * navigation cannot carry the bearer token; the zip is handed to the browser as a
+ * blob download instead.
+ * @throws Error if the export response is not ok (2xx).
  */
-export function exportConfigUrl(): string {
-  return `${API_BASE}/config/export`;
+export async function downloadConfigExport(): Promise<void> {
+  const auth = authHeaders();
+  const resp = await fetch(`${API_BASE}/config/export`, { headers: auth });
+  noteAuthFailure(resp, auth);
+  if (!resp.ok) throw new Error(`${resp.status}: ${resp.statusText}`);
+  const blob = await resp.blob();
+  // Keep the server's filename when it sends one.
+  const match = /filename="?([^";]+)"?/.exec(resp.headers.get("content-disposition") ?? "");
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = match?.[1] ?? "hyperion-config.zip";
+  a.click();
+  // Revoke later: revoking synchronously can cancel the download in some browsers.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/**
+ * Fetch a task artifact as text (e.g. `result.md`), with the bearer token.
+ * @param taskId - The Hyperion task id.
+ * @param name - Artifact file name under the task directory.
+ * @returns The artifact body.
+ * @throws Error `HTTP <status>` on a non-2xx response.
+ */
+export async function fetchArtifactText(taskId: string, name: string): Promise<string> {
+  const auth = authHeaders();
+  const resp = await fetch(`${API_BASE}/tasks/${taskId}/artifacts/${name}`, { headers: auth });
+  noteAuthFailure(resp, auth);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return resp.text();
 }
 
 /**
@@ -731,7 +765,13 @@ export async function importConfig(
 ): Promise<{ imported: string[]; count: number; workflows: string[] }> {
   const form = new FormData();
   form.append("file", file);
-  const resp = await fetch(`${API_BASE}/config/import`, { method: "POST", body: form });
+  const auth = authHeaders();
+  const resp = await fetch(`${API_BASE}/config/import`, {
+    method: "POST",
+    body: form,
+    headers: auth,
+  });
+  noteAuthFailure(resp, auth);
   if (!resp.ok) {
     let detail = resp.statusText;
     try {

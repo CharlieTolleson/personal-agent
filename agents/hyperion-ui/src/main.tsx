@@ -20,7 +20,9 @@
  *   3. BrowserRouter         — react-router-dom history/routing context. Must wrap
  *                              <App /> so route components and <Link>s resolve.
  *   4. ToastProvider         — app-wide toast/notification context (see ./components/Toast).
- *   5. <App />               — the actual route tree and UI.
+ *   5. <TokenGate>           — asks for the Hyperion API token (stored per browser)
+ *                              before anything calls the API; needs QueryClient.
+ *   6. <App />               — the actual route tree and UI.
  *
  * Key design decisions:
  *   - A single shared QueryClient is created once at module scope (not per-render) so
@@ -35,6 +37,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { ToastProvider } from "./components/Toast";
+import TokenGate from "./components/TokenGate";
 import "./index.css";
 
 /**
@@ -61,7 +64,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
         <ToastProvider>
-          <App />
+          <TokenGate>
+            <App />
+          </TokenGate>
         </ToastProvider>
       </BrowserRouter>
     </QueryClientProvider>

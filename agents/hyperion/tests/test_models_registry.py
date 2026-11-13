@@ -26,6 +26,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from auth_helpers import AUTH_HEADERS  # every route needs the bearer token
+
 from hyperion import models_registry
 from hyperion.config import settings
 from hyperion.server.api import app
@@ -46,7 +48,7 @@ def anyio_backend():
 
 def _client():
     """An un-entered in-process httpx client bound to the FastAPI app."""
-    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers=AUTH_HEADERS)
 
 
 @contextlib.contextmanager

@@ -24,7 +24,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
-  API_BASE,
+  fetchArtifactText,
   useApproveTask,
   useFeedbackTask,
   useSaveToNotion,
@@ -75,8 +75,7 @@ function Result({ taskId }: { taskId: string }) {
   useEffect(() => {
     // Reject non-2xx responses so the .catch path renders the error line
     // (a 404 here just means the artifact was never produced).
-    fetch(`${API_BASE}/tasks/${taskId}/artifacts/result.md`)
-      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
+    fetchArtifactText(taskId, "result.md")
       .then(setText)
       .catch((e) => setErr(e.message));
   }, [taskId]);

@@ -36,7 +36,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  exportConfigUrl,
+  downloadConfigExport,
   importConfig,
   useAliases,
   useConfig,
@@ -450,9 +450,16 @@ export default function Settings() {
               validates the whole set (DAG + at-least-one plan/synthesize) before writing.
             </p>
             <div className="flex items-center gap-3">
-              <a className="btn" href={exportConfigUrl()}>
+              <button
+                className="btn"
+                onClick={() =>
+                  downloadConfigExport().catch((e: Error) =>
+                    toast.push(`Export failed: ${e.message}`, "error"),
+                  )
+                }
+              >
                 Export config
-              </a>
+              </button>
               <button
                 className="btn"
                 disabled={importing}

@@ -21,6 +21,9 @@ Tools exposed (see ``list_tools`` for full schemas):
   hyperion_approve(task_id[, action, ...]) → resume a plan-approval gate
   hyperion_feedback(task_id, message)      → send free-text feedback / answer a question
 
+Auth: every request needs ``Authorization: Bearer $HYPERION_API_TOKEN``
+(``server/auth.py``), and ``_post_api`` forwards the same token to the API.
+
 Design notes
 ------------
 - Task lifecycle state is persisted in a local SQLite database (``_db_path()``) so
@@ -39,6 +42,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import os
 import uuid
 from typing import AsyncIterator
 
@@ -47,11 +51,13 @@ from mcp.server import Server
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from mcp.types import TextContent, Tool
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
 from starlette.routing import Route
 from starlette.types import Receive, Scope, Send
 
 from hyperion.config import settings
 from hyperion.crews.default import run_crew
+from hyperion.server.auth import TOKEN_ENV, BearerTokenMiddleware, require_token
 
 logger = logging.getLogger(__name__)
 
@@ -385,9 +391,11 @@ async def _post_api(path: str, payload: dict) -> list[TextContent]:
     import httpx
 
     url = settings.hyperion_api_url.rstrip("/") + path
+    # The API requires the same shared bearer token this server is gated by.
+    headers = {"Authorization": f"Bearer {os.environ.get(TOKEN_ENV, '').strip()}"}
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(url, json=payload)
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
+            resp = await client.post(url, json=payload, headers=headers)
         if resp.status_code >= 400:
             return [TextContent(type="text", text=f"Error {resp.status_code}: {resp.text}")]
         data = resp.json()
@@ -450,6 +458,8 @@ def make_starlette_app() -> Starlette:
 
     return Starlette(
         routes=[Route("/mcp", endpoint=_MCPApp(session_manager))],
+        # Every request, on every path, needs the bearer token (server/auth.py).
+        middleware=[Middleware(BearerTokenMiddleware)],
         lifespan=lifespan,
     )
 
@@ -462,6 +472,7 @@ def main() -> None:
     """
     import uvicorn
 
+    require_token()  # fail closed: no token configured means no server
     starlette_app = make_starlette_app()
     uvicorn.run(starlette_app, host="0.0.0.0", port=4101, log_level="info")
 
