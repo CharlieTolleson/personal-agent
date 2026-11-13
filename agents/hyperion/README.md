@@ -54,11 +54,39 @@ cd ~/ai/ai-router
 docker compose -f docker-compose.yml -f ../agents/hyperion/docker-compose.override.yml up -d hyperion hyperion-mcp
 ```
 
+## Auth
+
+Every request to the API (:4100) and the MCP server (:4101) must send
+`Authorization: Bearer $HYPERION_API_TOKEN`, on every path, including docs and
+`/openapi.json`. Anything else gets 401 (503 if the server has no usable token), and both
+servers refuse to start without one. Only a browser CORS preflight is answered without it.
+Why: every coding agent on this Mac can reach localhost ports, so an open Hyperion let any
+of them start paid runs, import config, or overwrite source through `/admin/files`.
+
+- **Where it lives:** `HYPERION_API_TOKEN` in `~/ai/ai-router/.env` (gitignored), nowhere
+  else. Compose passes it to `hyperion`, `hyperion-mcp` and `open-webui`.
+- **Create or rotate it** (never printed):
+  ```bash
+  scripts/create_hyperion_api_token.sh            # --rotate to replace
+  cd ~/ai/ai-router && docker compose up -d hyperion hyperion-mcp open-webui   # recreate, not restart
+  ```
+- **Callers:** the OWUI plugins read it from the container environment (`_auth_headers()`);
+  Claude Code gets it from `scripts/mcp_auth_headers.sh` (the `headersHelper` in
+  `~/ai/.mcp.json`); the web UI (:4102) asks for it once and keeps it in that browser's
+  localStorage; the MCP server forwards it when it proxies approve/feedback to the API.
+- **In a shell,** load it without echoing it:
+  ```bash
+  export HYPERION_API_TOKEN="$(grep '^HYPERION_API_TOKEN=' ~/ai/ai-router/.env | cut -d= -f2-)"
+  ```
+- **Never** put it in a URL or query string (it is not accepted there) or in a plugin valve.
+
 ## Usage
 
 ### From Open WebUI
 
 Paste `~/ai/skills/tools/hyperion_delegate.py` into **Admin Panel → Workspace → Tools**.
+The plugins authenticate with `HYPERION_API_TOKEN` from the `open-webui` container's
+environment (see Auth); there is no token valve to fill in.
 Then in any chat: `delegate_task: summarize this month's notable AI agent framework releases`
 
 ### From Claude Code
@@ -76,17 +104,18 @@ The MCP server is registered in `~/ai/.mcp.json`. Use the `/hyperion` skill:
 ```bash
 # Submit a task
 curl -X POST http://localhost:4100/tasks \
+  -H "Authorization: Bearer $HYPERION_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"task": "Summarize this month's notable AI agent framework releases"}'
 
 # Poll for status
-curl http://localhost:4100/tasks/{task_id}
+curl -H "Authorization: Bearer $HYPERION_API_TOKEN" http://localhost:4100/tasks/{task_id}
 
 # Stream progress
-curl http://localhost:4100/tasks/{task_id}/stream
+curl -H "Authorization: Bearer $HYPERION_API_TOKEN" http://localhost:4100/tasks/{task_id}/stream
 
 # Get result
-curl http://localhost:4100/tasks/{task_id}/artifacts/result.md
+curl -H "Authorization: Bearer $HYPERION_API_TOKEN" http://localhost:4100/tasks/{task_id}/artifacts/result.md
 ```
 
 ## Orchestration & integrations (Phase 9)
@@ -96,7 +125,7 @@ curl http://localhost:4100/tasks/{task_id}/artifacts/result.md
 External orchestrators discover Hyperion's contract at a well-known path:
 
 ```bash
-curl http://localhost:4100/.well-known/agent.json
+curl -H "Authorization: Bearer $HYPERION_API_TOKEN" http://localhost:4100/.well-known/agent.json
 ```
 
 It reports `schema_version`, the submit/status/stream/approve/feedback endpoints, and the
@@ -109,6 +138,7 @@ once** (on `done` or `failed`):
 
 ```bash
 curl -X POST http://localhost:4100/tasks \
+  -H "Authorization: Bearer $HYPERION_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"task": "Research X", "callback_url": "http://host.docker.internal:5678/webhook/hyperion"}'
 # → POST body: {"task_id", "status", "error", "result_path"}
@@ -125,7 +155,8 @@ Drive Hyperion from an existing n8n instance — no Hyperion-side scheduler need
 1. **n8n Schedule (cron) node** → fires on your interval.
 2. **HTTP Request node** → `POST http://hyperion:4100/tasks` (use the Docker service name on
    the shared network, or `host.docker.internal:4100` from a host-network n8n) with body
-   `{"task": "...", "callback_url": "http://n8n:5678/webhook/<id>"}`.
+   `{"task": "...", "callback_url": "http://n8n:5678/webhook/<id>"}` and the header
+   `Authorization: Bearer <HYPERION_API_TOKEN>` (store it as an n8n credential, see Auth).
 3. **Webhook node** (the `callback_url`) → receives the result when the run finishes; branch
    on `status` and fan out to Slack/Notion/etc.
 
@@ -139,14 +170,14 @@ task's artifact to a Notion database. Set `NOTION_API_KEY` and `NOTION_DATABASE_
 passes them through); absent either, the endpoint returns a clear "not configured" 502.
 
 ```bash
-curl -X POST http://localhost:4100/tasks/{task_id}/save-to-notion -d '{}'
+curl -X POST -H "Authorization: Bearer $HYPERION_API_TOKEN" http://localhost:4100/tasks/{task_id}/save-to-notion -d '{}'
 ```
 
 ### Back up / move the agent store
 
 ```bash
-curl -OJ http://localhost:4100/config/export                       # → hyperion-config.zip
-curl -F "file=@hyperion-config.zip" http://localhost:4100/config/import
+curl -OJ -H "Authorization: Bearer $HYPERION_API_TOKEN" http://localhost:4100/config/export                       # → hyperion-config.zip
+curl -H "Authorization: Bearer $HYPERION_API_TOKEN" -F "file=@hyperion-config.zip" http://localhost:4100/config/import
 ```
 
 Import validates every record (DAG + at-least-one plan/synthesize) before writing — a

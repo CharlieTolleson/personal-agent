@@ -36,6 +36,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from auth_helpers import AUTH_HEADERS  # every route needs the bearer token
+
 from hyperion.agents.registry import AgentRecord, save_agent
 from hyperion.server.api import app
 
@@ -108,7 +110,7 @@ def _client():
     Returns:
         AsyncClient: An un-entered client; callers use it via ``async with``.
     """
-    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers=AUTH_HEADERS)
 
 
 @pytest.mark.anyio

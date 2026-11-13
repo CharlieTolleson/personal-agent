@@ -32,6 +32,7 @@ import {
   useQueryClient,
   type UseQueryOptions,
 } from "@tanstack/react-query";
+import { authHeaders, noteAuthFailure } from "./auth";
 
 /**
  * Base URL for every Hyperion API request.
@@ -282,7 +283,8 @@ export interface WorkflowRecord {
 
 /**
  * Core fetch wrapper for JSON endpoints. Prepends {@link API_BASE}, sets the
- * JSON content-type header, and normalizes error handling.
+ * JSON content-type and bearer-token headers, and normalizes error handling.
+ * A 401 clears the stored token and reopens the token form (`api/auth.ts`).
  *
  * On a non-2xx response it throws an `Error` whose message is `"<status>:
  * <detail>"`, preferring the backend's `detail` field (FastAPI convention) and
@@ -298,9 +300,11 @@ export interface WorkflowRecord {
  */
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const resp = await fetch(API_BASE + path, {
-    headers: { "content-type": "application/json" },
     ...init,
+    // Merged after `init` so a caller's headers can't drop the bearer token.
+    headers: { "content-type": "application/json", ...init?.headers, ...authHeaders() },
   });
+  noteAuthFailure(resp);
   if (!resp.ok) {
     let detail = resp.statusText;
     try {
@@ -705,13 +709,40 @@ export function useSaveToNotion(id: string) {
 // ---------------------------------------------------------------------------
 
 /**
- * Build the absolute URL for the config export endpoint. Returned as a plain
- * string (not fetched) so the UI can use it as an `<a href>` download link — the
- * response is a binary zip, which the JSON `req` helper cannot handle.
- * @returns Absolute URL to GET the config export zip.
+ * Download the config export zip. Fetched (not a plain `<a href>` link) because a
+ * navigation cannot carry the bearer token; the zip is handed to the browser as a
+ * blob download instead.
+ * @throws Error if the export response is not ok (2xx).
  */
-export function exportConfigUrl(): string {
-  return `${API_BASE}/config/export`;
+export async function downloadConfigExport(): Promise<void> {
+  const resp = await fetch(`${API_BASE}/config/export`, { headers: authHeaders() });
+  noteAuthFailure(resp);
+  if (!resp.ok) throw new Error(`${resp.status}: ${resp.statusText}`);
+  const blob = await resp.blob();
+  // Keep the server's filename when it sends one.
+  const match = /filename="?([^";]+)"?/.exec(resp.headers.get("content-disposition") ?? "");
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = match?.[1] ?? "hyperion-config.zip";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Fetch a task artifact as text (e.g. `result.md`), with the bearer token.
+ * @param taskId - The Hyperion task id.
+ * @param name - Artifact file name under the task directory.
+ * @returns The artifact body.
+ * @throws Error `HTTP <status>` on a non-2xx response.
+ */
+export async function fetchArtifactText(taskId: string, name: string): Promise<string> {
+  const resp = await fetch(`${API_BASE}/tasks/${taskId}/artifacts/${name}`, {
+    headers: authHeaders(),
+  });
+  noteAuthFailure(resp);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return resp.text();
 }
 
 /**
@@ -731,7 +762,12 @@ export async function importConfig(
 ): Promise<{ imported: string[]; count: number; workflows: string[] }> {
   const form = new FormData();
   form.append("file", file);
-  const resp = await fetch(`${API_BASE}/config/import`, { method: "POST", body: form });
+  const resp = await fetch(`${API_BASE}/config/import`, {
+    method: "POST",
+    body: form,
+    headers: authHeaders(),
+  });
+  noteAuthFailure(resp);
   if (!resp.ok) {
     let detail = resp.statusText;
     try {

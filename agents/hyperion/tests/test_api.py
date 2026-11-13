@@ -36,6 +36,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from auth_helpers import AUTH_HEADERS  # every route needs the bearer token
+
 from hyperion.server.api import app
 
 
@@ -65,7 +67,7 @@ async def test_submit_and_poll(tmp_path):
     with patch.object(settings, "tasks_dir", tmp_path):
         with patch("hyperion.server.api._run_and_update", new=AsyncMock()):
             async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
+                transport=ASGITransport(app=app), base_url="http://test", headers=AUTH_HEADERS
             ) as client:
                 # Submit task
                 resp = await client.post("/tasks", json={"task": "test task"})
@@ -90,7 +92,7 @@ async def test_missing_task_returns_404(tmp_path):
 
     with patch.object(settings, "tasks_dir", tmp_path):
         async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
+            transport=ASGITransport(app=app), base_url="http://test", headers=AUTH_HEADERS
         ) as client:
             resp = await client.get("/tasks/nonexistent")
             assert resp.status_code == 404
@@ -112,7 +114,7 @@ async def test_approve_on_non_awaiting_task_returns_409(tmp_path):
     with patch.object(settings, "tasks_dir", tmp_path):
         with patch("hyperion.server.api._run_and_update", new=AsyncMock()):
             async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
+                transport=ASGITransport(app=app), base_url="http://test", headers=AUTH_HEADERS
             ) as client:
                 resp = await client.post("/tasks", json={"task": "t", "hitl": "plan"})
                 task_id = resp.json()["task_id"]
@@ -132,7 +134,7 @@ async def test_approve_missing_task_returns_404(tmp_path):
 
     with patch.object(settings, "tasks_dir", tmp_path):
         async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
+            transport=ASGITransport(app=app), base_url="http://test", headers=AUTH_HEADERS
         ) as client:
             resp = await client.post("/tasks/nope/approve", json={"action": "approve"})
             assert resp.status_code == 404
@@ -154,7 +156,7 @@ async def test_stop_marks_task_cancelled(tmp_path):
     with patch.object(settings, "tasks_dir", tmp_path):
         with patch("hyperion.server.api._run_and_update", new=AsyncMock()):
             async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
+                transport=ASGITransport(app=app), base_url="http://test", headers=AUTH_HEADERS
             ) as client:
                 task_id = (await client.post("/tasks", json={"task": "t"})).json()["task_id"]
 
@@ -178,7 +180,7 @@ async def test_stop_missing_task_returns_404(tmp_path):
 
     with patch.object(settings, "tasks_dir", tmp_path):
         async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
+            transport=ASGITransport(app=app), base_url="http://test", headers=AUTH_HEADERS
         ) as client:
             resp = await client.post("/tasks/nope/stop")
             assert resp.status_code == 404

@@ -29,6 +29,10 @@ Architecture / key design decisions:
   - Per the workspace convention, all LLM traffic flows through the LiteLLM proxy;
     this service never calls provider APIs directly.
 
+Auth: every route, including docs and /openapi.json, requires
+``Authorization: Bearer $HYPERION_API_TOKEN`` (``server/auth.py``); only a CORS
+preflight is answered without it.
+
 Endpoints (non-exhaustive — see the route decorators below):
   GET  /config                    → current model assignments + provider key status
   POST /tasks                     → submit a task
@@ -70,6 +74,7 @@ from hyperion.crews.plan_contract import parse_plan
 from hyperion.crews.runner import resume_task, run_task
 from hyperion.crews.workflows import WorkflowRecord
 from hyperion.server.affordances import Affordance, AffordanceOption
+from hyperion.server.auth import BearerTokenMiddleware, require_token
 from hyperion.server.webhooks import UnsafeCallbackURL, fire_callback, validate_callback_url
 from hyperion.tools.web_search import WebSearchTool
 
@@ -93,6 +98,12 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(title="Hyperion", version="0.1.0", lifespan=lifespan)
+
+# Every request needs the bearer token (see server/auth.py). Added BEFORE CORS on
+# purpose: in FastAPI the last add_middleware call is outermost, and CORS must be
+# outside the gate so the browser UI's credential-less preflight OPTIONS is answered
+# by CORSMiddleware itself, and so 401s still carry CORS headers the UI can read.
+app.add_middleware(BearerTokenMiddleware)
 
 # The Phase 7 web UI is served from a different origin (nginx :4102) and calls this
 # API directly from the browser. Allow the local UI origins only — this is a
@@ -2587,6 +2598,8 @@ async def write_src_file(path: str, body: FileWriteBody) -> dict:
 
 
 def main() -> None:
+    """Run the API with uvicorn; refuses to start without HYPERION_API_TOKEN."""
     import uvicorn
 
+    require_token()  # fail closed: no token configured means no server
     uvicorn.run("hyperion.server.api:app", host="0.0.0.0", port=4100, reload=False, log_level="info")

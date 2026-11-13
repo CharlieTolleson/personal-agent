@@ -3,7 +3,8 @@
     "hyperion": {
       "type": "http",
       "url": "http://localhost:4101/mcp",
-      "description": "Hyperion multi-agent orchestrator (CrewAI + LiteLLM)"
+      "headersHelper": "$HOME/ai/agents/hyperion/scripts/mcp_auth_headers.sh",
+      "description": "Hyperion multi-agent orchestrator. Requires a bearer token; headersHelper reads HYPERION_API_TOKEN from ~/ai/ai-router/.env"
     }
   }
 }

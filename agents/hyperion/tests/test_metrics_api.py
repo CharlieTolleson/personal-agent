@@ -30,6 +30,8 @@ import json
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from auth_helpers import AUTH_HEADERS  # every route needs the bearer token
+
 import hyperion.server.api as api
 from hyperion.server.api import app
 
@@ -53,7 +55,7 @@ async def _client():
             process; ``base_url`` is a placeholder since requests never leave the
             test. Use as an async context manager so the client is closed cleanly.
     """
-    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers=AUTH_HEADERS)
 
 
 async def _seed_db(tmp_path, rows):

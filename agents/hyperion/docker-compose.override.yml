@@ -52,7 +52,7 @@ services:
     container_name: hyperion
     restart: unless-stopped     # auto-restart on crash; only stays down if explicitly stopped
     ports:
-      - "4100:4100"             # host:container — exposes the orchestrator REST API on localhost:4100
+      - "127.0.0.1:4100:4100"   # host:container, loopback only; every request needs the bearer token
     volumes:
       - ./tasks:/app/tasks:rw   # persist task artifacts/state on the host across container restarts
       # Mount the host Docker socket read-only so Hyperion can spawn/inspect
@@ -68,6 +68,7 @@ services:
       SEARXNG_URL: "http://searxng:8888"           # web_search tool backend (internal port 8888)
       INFINITY_URL: "http://infinity:7997"         # reranker tool backend
       LANGFUSE_HOST: "http://langfuse:3000"        # LLM tracing; :3000 internally, :3001 on host
+      HYPERION_API_TOKEN: "${HYPERION_API_TOKEN:-}" # required bearer token (server/auth.py); from ai-router/.env
     depends_on:                 # start ordering only (does not wait for healthchecks)
       - litellm
       - searxng
@@ -89,7 +90,7 @@ services:
     container_name: hyperion-mcp
     restart: unless-stopped
     ports:
-      - "4101:4101"             # exposes the MCP server on localhost:4101
+      - "127.0.0.1:4101:4101"   # MCP server on loopback only; bearer token required
     volumes:
       - ./tasks:/app/tasks:rw   # shares the same tasks dir as the API service
       # NOTE: no docker.sock mount here — the MCP server does not spawn containers.
@@ -101,6 +102,8 @@ services:
       SEARXNG_URL: "http://searxng:8888"
       INFINITY_URL: "http://infinity:7997"
       LANGFUSE_HOST: "http://langfuse:3000"
+      HYPERION_API_TOKEN: "${HYPERION_API_TOKEN:-}" # same bearer token; also sent on approve/feedback proxy calls
+      HYPERION_API_URL: "http://hyperion:4100"      # API via service name; localhost here is this container
     depends_on:                 # only the dependencies the MCP server actually needs at startup
       - litellm
     networks:

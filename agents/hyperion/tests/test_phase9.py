@@ -40,6 +40,8 @@ import zipfile
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from auth_helpers import AUTH_HEADERS  # every route needs the bearer token
+
 import hyperion.server.api as api
 from hyperion.server import webhooks
 from hyperion.server.api import app
@@ -70,7 +72,7 @@ async def _client():
         context manager (``async with await _client() as client: ...``) so it is
         properly closed.
     """
-    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers=AUTH_HEADERS)
 
 
 # --- SSRF guard -------------------------------------------------------------

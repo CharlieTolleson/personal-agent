@@ -42,7 +42,7 @@
 #   POSTGRES_PASSWORD, LITELLM_MASTER_KEY, WEBUI_SECRET_KEY, MCPO_API_KEY,
 #   SEARXNG_SECRET_KEY, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY,
 #   LANGFUSE_NEXTAUTH_SECRET, LANGFUSE_SALT, LANGFUSE_ENCRYPTION_KEY,
-#   LANGFUSE_ADMIN_PASSWORD; optional ANTHROPIC/OPENAI/GEMINI/NOTION keys.
+#   LANGFUSE_ADMIN_PASSWORD, HYPERION_API_TOKEN; optional ANTHROPIC/OPENAI/GEMINI/NOTION keys.
 #
 # USAGE
 #   cd ~/ai/ai-router && docker compose up -d        # start the full stack
@@ -126,6 +126,9 @@ services:
       # uses its built-in default (Chroma under /app/backend/data) for upload RAG.
       AGENT_WORKSPACE: "/workspace"
       GOOGLE_SECRETS_DIR: "/secrets/google"
+      # Read by the Hyperion OWUI plugins (pipe, Hyperion tool, web_search) to
+      # authenticate to http://hyperion:4100. Never stored in plugin valves.
+      HYPERION_API_TOKEN: "${HYPERION_API_TOKEN:-}"
       # --- RAG retrieval tuning (native OWUI document RAG; PersistentConfig) ---
       # These seed the DB config on first boot while rag.* is empty. After OWUI
       # writes them to the DB, later edits here are IGNORED unless changed in the
@@ -357,7 +360,8 @@ services:
     container_name: hyperion
     restart: unless-stopped
     ports:
-      - "4100:4100"
+      # Host-published on loopback only (siblings use ai-net, not this port).
+      - "127.0.0.1:4100:4100"
     volumes:
       - ../agents/hyperion/tasks:/app/tasks:rw
       - ../agents/hyperion/config:/app/config:rw
@@ -377,6 +381,9 @@ services:
       LANGFUSE_HOST: "http://langfuse:3000"
       HYPERION_TASKS_DIR: "/app/tasks"
       HYPERION_CONFIG_DIR: "/app/config"
+      # Shared bearer token every Hyperion request must carry (server/auth.py).
+      # Lives only in ai-router/.env; Hyperion refuses to start without it.
+      HYPERION_API_TOKEN: "${HYPERION_API_TOKEN:-}"
       # Pass provider keys through (used only by /config endpoint to report which
       # providers are configured — actual LLM calls route via LiteLLM proxy).
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
@@ -404,7 +411,7 @@ services:
     container_name: hyperion-mcp
     restart: unless-stopped
     ports:
-      - "4101:4101"
+      - "127.0.0.1:4101:4101"
     volumes:
       - ../agents/hyperion/tasks:/app/tasks:rw
       - ../agents/hyperion/config:/app/config:rw
@@ -422,6 +429,12 @@ services:
       LANGFUSE_HOST: "http://langfuse:3000"
       HYPERION_TASKS_DIR: "/app/tasks"
       HYPERION_CONFIG_DIR: "/app/config"
+      # Shared bearer token every Hyperion request must carry (server/auth.py).
+      # Lives only in ai-router/.env; Hyperion refuses to start without it.
+      HYPERION_API_TOKEN: "${HYPERION_API_TOKEN:-}"
+      # The MCP server proxies approve/feedback to the API; inside Docker that is
+      # the service name, not localhost (localhost here is this container).
+      HYPERION_API_URL: "http://hyperion:4100"
       # Pass provider keys through (used only by /config endpoint to report which
       # providers are configured — actual LLM calls route via LiteLLM proxy).
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
@@ -451,7 +464,7 @@ services:
     container_name: hyperion-ui
     restart: unless-stopped
     ports:
-      - "4102:4102"
+      - "127.0.0.1:4102:4102"
     depends_on:
       - hyperion
     networks:

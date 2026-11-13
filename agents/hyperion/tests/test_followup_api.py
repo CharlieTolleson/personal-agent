@@ -11,6 +11,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from auth_helpers import AUTH_HEADERS  # every route needs the bearer token
+
 from hyperion.server.api import _update_task, app
 
 
@@ -35,7 +37,7 @@ async def test_chat_on_done_task_returns_reply(tmp_path):
                 "hyperion.followup.run_followup_chat", return_value="grounded answer"
             ) as mock_chat:
                 async with AsyncClient(
-                    transport=ASGITransport(app=app), base_url="http://test"
+                    transport=ASGITransport(app=app), base_url="http://test", headers=AUTH_HEADERS
                 ) as client:
                     task_id = await _submit(client)
                     await _update_task(task_id, status="done")
@@ -64,7 +66,7 @@ async def test_chat_on_unfinished_task_returns_409(tmp_path):
     with patch.object(settings, "tasks_dir", tmp_path):
         with patch("hyperion.server.api._run_and_update", new=AsyncMock()):
             async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
+                transport=ASGITransport(app=app), base_url="http://test", headers=AUTH_HEADERS
             ) as client:
                 task_id = await _submit(client)  # stays 'queued' (runner mocked)
                 resp = await client.post(f"/tasks/{task_id}/chat", json={"message": "hi"})
@@ -78,7 +80,7 @@ async def test_chat_on_missing_task_returns_404(tmp_path):
 
     with patch.object(settings, "tasks_dir", tmp_path):
         async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
+            transport=ASGITransport(app=app), base_url="http://test", headers=AUTH_HEADERS
         ) as client:
             resp = await client.post("/tasks/nope/chat", json={"message": "hi"})
             assert resp.status_code == 404
@@ -92,7 +94,7 @@ async def test_chat_rejects_empty_message(tmp_path):
     with patch.object(settings, "tasks_dir", tmp_path):
         with patch("hyperion.server.api._run_and_update", new=AsyncMock()):
             async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
+                transport=ASGITransport(app=app), base_url="http://test", headers=AUTH_HEADERS
             ) as client:
                 task_id = await _submit(client)
                 await _update_task(task_id, status="done")
